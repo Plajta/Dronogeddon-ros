@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>my_drone</name>
+  <version>0.0.0</version>
+  <description>tello</description>
+  <maintainer email="sles@todo.todo">sles</maintainer>
+  <license>Apache-2.0</license>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <exec_depend>drone_interfaces</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <exec_depend>djitellopy</exec_depend>
+  <exec_depend>opencv-python</exec_depend>
+  <exec_depend>threading</exec_depend>
+  <exec_depend>time</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
