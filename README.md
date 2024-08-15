@@ -20,5 +20,6 @@
 4. **Then you can run the nodes**
 
 	ros2 run my_drone telemetry
+	
 	ros2 run my_drone video
 
