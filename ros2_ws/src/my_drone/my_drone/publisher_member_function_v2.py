@@ -18,29 +18,49 @@ import random
 from djitellopy import Tello
 
 from drone_interfaces.msg import Telemetry   
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+import cv2
 
 
 class MinimalPublisher(Node):
 
     def __init__(self):
         super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(Telemetry, 'topic', 10)
-        timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.i = 0
-        self.tello = Tello()
+        self.telemetry_publisher = self.create_publisher(Telemetry, 'topic', 10)
+        telemetry_timer_period = 1/10  # seconds
+        self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
+        
+        self.video_publisher = self.create_publisher(Image, 'video_frames', 10)
+        video_timer_period = 1/10  # seconds
+        self.timer_video = self.create_timer(video_timer_period, self.publish_video_frame)
+        self.bridge = CvBridge()
 
-    def timer_callback(self):
+        self.tello = Tello()
+        self.tello.connect()
+        self.tello.streamon()
+        self.frame_read = self.tello.get_frame_read()
+
+    def telemetry_callback(self):
         msg = Telemetry()
         data = self.mesurments()
 
         msg.front = data[0]
-        msg.left = data[2]
-        msg.right = data[3]
-        msg.back = data[4]
+        msg.left = data[1]
+        msg.right = data[2]
+        msg.back = data[3]
         msg.degree = data[5]
-        self.publisher_.publish(msg)
+        self.telemetry_publisher.publish(msg)
         self.get_logger().info('Publishing telemetry')
+        
+    def publish_video_frame(self):
+        frame = self.frame_read.frame
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        
+        # Convert OpenCV image to ROS Image message
+        ros_image = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
+        self.video_publisher.publish(ros_image)
+        self.get_logger().info('Publishing video frame')
 
     def mesurments(self):
         try:
