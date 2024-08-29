@@ -22,7 +22,6 @@ setup(
         'console_scripts': [
             'telemetry = my_drone.publisher_member_function_v2:main',
             'video = my_drone.subscriber_member_function_v2:main',
-            'tello_test = my_drone.test:main',
         ],
     },
 )
