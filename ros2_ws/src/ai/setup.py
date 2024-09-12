@@ -14,7 +14,7 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='danusubuntu',
-    maintainer_email='danpojhan@protonmail.com',
+    maintainer_email='danpojhan@todo.todo',
     description='TODO: Package description',
     license='Apache-2.0',
     tests_require=['pytest'],
