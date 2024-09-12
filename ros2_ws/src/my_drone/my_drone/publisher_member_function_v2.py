@@ -18,9 +18,12 @@ import random
 from djitellopy import Tello
 from threading import Lock
 
-from drone_interfaces.msg import Telemetry  
+from drone_interfaces.msg import Telemetry
+from drone_interfaces.msg import RCcommands
+from drone_interfaces.srv import HeightCommands
 from std_msgs.msg import String 
 from sensor_msgs.msg import Image
+
 from cv_bridge import CvBridge
 import cv2
 
@@ -30,20 +33,25 @@ class MinimalPublisher(Node):
 
     def __init__(self):
         super().__init__('minimal_publisher')
-        self.telemetry_publisher = self.create_publisher(Telemetry, 'topic', 10)
-        telemetry_timer_period = 1/2  # seconds
+
+        #publisher for telemetry data to "telemetry" topic
+        self.telemetry_publisher = self.create_publisher(Telemetry, 'telemtetry', 10)
+        telemetry_timer_period = 1/2  #period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
         
+        #publisher for streaming video to "video_frames" topic
         self.video_publisher = self.create_publisher(Image, 'video_frames', 1)
-        video_timer_period = 1/10  # seconds
+        video_timer_period = 1/10 #stream frequency
         self.timer_video = self.create_timer(video_timer_period, self.publish_video_frame)
         self.bridge = CvBridge()
 
         self.incoming_commands = self.create_subscription(
-            String,
-            'commands',
-            self.send_command_callback,
+            RCcommands,
+            'rc_commands',
+            self.rc_command_callback,
             1)
+        self.srv = self.create_service(HeightCommands, 'set_height', self.height_command_callback)
+
 
         self.tello_lock = Lock()
         self.tello = Tello()
@@ -84,11 +92,35 @@ class MinimalPublisher(Node):
         except Exception as e:
             return self.mesurments()
         
-    def send_command_callback(self,msg):
+    def rc_command_callback(self,msg):
         with self.tello_lock:
-            pass
+            self.get_logger().info(f"← {msg.left_right_velocity} -----> {msg.forward_backward_velocity} ↓{msg.up_down_velocity} ø{msg.yaw_velocity}")
+            self.tello.send_rc_control(msg.left_right_velocity, msg.forward_backward_velocity, msg.up_down_velocity, msg.yaw_velocity)
 
-        
+    def height_command_callback(self,request, response):
+        try:
+            with self.tello_lock:
+                response.success = True
+    
+                if request.command == 1:
+                    self.get_logger().info(f'Received command: Takeoff')
+                    self.tello.takeoff()
+                elif request.command == 0:
+                    self.get_logger().info(f'Received command: Land')
+                    self.tello.land()
+                elif request.command == 90:
+                    self.get_logger().info(f'Received command: rotate left')
+                    self.tello.rotate_counter_clockwise(90)
+                elif request.command == -90:
+                    self.get_logger().info(f'Received command: rotate right')
+                    self.tello.rotate_clockwise(90)
+                else:
+                    response.success = False
+                return response
+            
+        except:
+            response.success = False
+            return response
 
 
 def main(args=None):

@@ -48,17 +48,37 @@ class StaticCommandsPublisher(Node):
             
         self.send_rc_commands(0,50,0,0)
         self.get_logger().info("forward")
-        sleep(1)
-        self.send_rc_commands(0,0,0,20)
-        self.get_logger().info("stop and turn")
-        sleep(1)
-        self.send_rc_commands(0,0,0,-20)
-        self.get_logger().info("turn the other way")
-        sleep(1)
-        self.send_rc_commands(0,0,0,0)
-        self.get_logger().info("stop")
-        sleep(1)
-        if self.send_height(1):
+        sleep(6)
+        
+        self.get_logger().info("right")
+        self.send_height(-90)
+        self.send_height(-90)
+        self.send_height(-90)
+        self.send_height(-90)
+        self.send_height(-90)
+        
+        self.get_logger().info("forward")
+        self.send_rc_commands(0,50,0,0)
+        sleep(3)
+        
+        self.get_logger().info("right")
+        self.send_height(-90)
+        
+        self.get_logger().info("forward")
+        self.send_rc_commands(0,50,0,0)
+        sleep(6)
+
+        self.get_logger().info("right")
+        self.send_height(90)
+        self.send_height(90)
+        self.send_height(90)
+
+        self.get_logger().info("forward")
+        self.send_rc_commands(0,50,0,0)
+        sleep(3)
+
+
+        if self.send_height(0):
             self.get_logger().info("landing ok")
         else:
             self.get_logger().info("landing bad")

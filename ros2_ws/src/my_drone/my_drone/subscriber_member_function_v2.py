@@ -31,7 +31,7 @@ class MinimalSubscriber(Node):
 
         self.telemetry_subscription = self.create_subscription(
             Telemetry,
-            'topic',
+            'telemtetry',
             self.listener_callback,
             10)
         #self.subscription  # prevent unused variable warning
