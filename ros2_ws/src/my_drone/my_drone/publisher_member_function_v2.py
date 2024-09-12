@@ -16,11 +16,14 @@ import rclpy
 from rclpy.node import Node
 import random
 from djitellopy import Tello
+from threading import Lock
 
-from drone_interfaces.msg import Telemetry   
+from drone_interfaces.msg import Telemetry  
+from std_msgs.msg import String 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
+
 
 
 class MinimalPublisher(Node):
@@ -28,22 +31,31 @@ class MinimalPublisher(Node):
     def __init__(self):
         super().__init__('minimal_publisher')
         self.telemetry_publisher = self.create_publisher(Telemetry, 'topic', 10)
-        telemetry_timer_period = 1/10  # seconds
+        telemetry_timer_period = 1/2  # seconds
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
         
-        self.video_publisher = self.create_publisher(Image, 'video_frames', 10)
+        self.video_publisher = self.create_publisher(Image, 'video_frames', 1)
         video_timer_period = 1/10  # seconds
         self.timer_video = self.create_timer(video_timer_period, self.publish_video_frame)
         self.bridge = CvBridge()
 
+        self.incoming_commands = self.create_subscription(
+            String,
+            'commands',
+            self.send_command_callback,
+            1)
+
+        self.tello_lock = Lock()
         self.tello = Tello()
         self.tello.connect()
         self.tello.streamon()
         self.frame_read = self.tello.get_frame_read()
 
+
     def telemetry_callback(self):
         msg = Telemetry()
-        data = self.mesurments()
+        with self.tello_lock:
+            data = self.mesurments()
 
         msg.front = data[0]
         msg.left = data[1]
@@ -71,6 +83,11 @@ class MinimalPublisher(Node):
                 return [int(responses[1]),int(responses[4]),int(responses[3]),int(responses[2]),int(responses[5]),self.tello.get_yaw()+180]
         except Exception as e:
             return self.mesurments()
+        
+    def send_command_callback(self,msg):
+        with self.tello_lock:
+            pass
+
         
 
 

@@ -22,6 +22,8 @@ setup(
         'console_scripts': [
             'telemetry = my_drone.publisher_member_function_v2:main',
             'video = my_drone.subscriber_member_function_v2:main',
+            'static_commands = my_drone.static_commands:main',
+            'commands_exec = my_drone.command_exec_nodrone_test:main',
         ],
     },
 )
