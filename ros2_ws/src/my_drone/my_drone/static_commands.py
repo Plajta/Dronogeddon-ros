@@ -24,8 +24,10 @@ class StaticCommandsPublisher(Node):
     def send_height(self,arg):
         self.request.command = arg
         self.get_logger().info(f'Sending command: {arg}')
+        
         future = self.static_publisher_response.call_async(self.request)
         rclpy.spin_until_future_complete(self, future)
+        
         return future.result()
 
 

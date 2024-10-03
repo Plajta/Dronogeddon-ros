@@ -13,10 +13,13 @@
 # limitations under the License.
 
 import rclpy
+import rclpy.executors
 from rclpy.node import Node
 import random
 from djitellopy import Tello
 from threading import Lock
+import threading
+from time import sleep
 
 from drone_interfaces.msg import Telemetry
 from drone_interfaces.msg import RCcommands
@@ -29,20 +32,23 @@ import cv2
 
 
 
-class MinimalPublisher(Node):
+class DroneComm(Node):
 
     def __init__(self):
-        super().__init__('minimal_publisher')
+        super().__init__('drone_comm')
 
         #publisher for telemetry data to "telemetry" topic
         self.telemetry_publisher = self.create_publisher(Telemetry, 'telemtetry', 10)
-        telemetry_timer_period = 1/2  #period of publishing
+        telemetry_timer_period = 1/10  #period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
         
         #publisher for streaming video to "video_frames" topic
-        self.video_publisher = self.create_publisher(Image, 'video_frames', 1)
-        video_timer_period = 1/10 #stream frequency
-        self.timer_video = self.create_timer(video_timer_period, self.publish_video_frame)
+        self.video_publisher = self.create_publisher(Image, 'video_frames', 10)
+        video_timer_period = 1/10
+        self.video_publisher_thread = threading.Thread(target=self.publish_video_frame, args=(video_timer_period,))
+        self.video_publisher_thread.daemon = True
+        
+        
         self.bridge = CvBridge()
 
         self.incoming_commands = self.create_subscription(
@@ -57,7 +63,9 @@ class MinimalPublisher(Node):
         self.tello = Tello()
         self.tello.connect()
         self.tello.streamon()
-        self.frame_read = self.tello.get_frame_read()
+        
+        
+        self.video_publisher_thread.start()
 
 
     def telemetry_callback(self):
@@ -73,14 +81,18 @@ class MinimalPublisher(Node):
         self.telemetry_publisher.publish(msg)
         self.get_logger().info('Publishing telemetry')
         
-    def publish_video_frame(self):
-        frame = self.frame_read.frame
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        
-        # Convert OpenCV image to ROS Image message
-        ros_image = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
-        self.video_publisher.publish(ros_image)
-        self.get_logger().info('Publishing video frame')
+    def publish_video_frame(self,interval):
+        self.frame_read = self.tello.get_frame_read()
+        while rclpy.ok():
+            frame = self.frame_read.frame
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            
+            # Convert OpenCV image to ROS Image message
+            ros_image = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
+            self.video_publisher.publish(ros_image)
+            self.get_logger().info('Publishing video frame')
+            sleep(interval)
+            
 
     def mesurments(self):
         try:
@@ -107,6 +119,8 @@ class MinimalPublisher(Node):
                     self.tello.takeoff()
                 elif request.command == 0:
                     self.get_logger().info(f'Received command: Land')
+                    self.tello.send_rc_control(0,0,0,0)
+                    self.tello.move_back(20)
                     self.tello.land()
                 elif request.command == 90:
                     self.get_logger().info(f'Received command: rotate left')
@@ -116,6 +130,7 @@ class MinimalPublisher(Node):
                     self.tello.rotate_clockwise(90)
                 else:
                     response.success = False
+                    
                 return response
             
         except:
@@ -126,14 +141,16 @@ class MinimalPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    minimal_publisher = MinimalPublisher()
+    drone_comm = DroneComm()
 
-    rclpy.spin(minimal_publisher)
+
+
+    rclpy.spin(drone_comm)
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    minimal_publisher.destroy_node()
+    drone_comm.destroy_node()
     rclpy.shutdown()
 
 
