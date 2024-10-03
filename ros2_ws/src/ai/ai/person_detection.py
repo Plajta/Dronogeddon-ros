@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-
+import cv2
 
 class ModelNode(Node):
     def __init__(self):
@@ -14,16 +14,13 @@ class ModelNode(Node):
             self.callback,
             1
         )
-
         self.bridge = CvBridge()
         self.detection = DetectionWrapper()
 
     def callback(self, msg):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-            if self.data is None:
-                return
-
+            
             self.detection.detect_img(frame)
             self.detection.parse_objects(frame, 1, 0.5)
             cv2.imshow('Neural result', frame)
