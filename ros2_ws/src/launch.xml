@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="my_drone" exec="static_commands" name="static_commands"/>
+  <node pkg="my_drone" exec="commands_exec" name="commands_exec"/>
+  <node pkg="ai" exec="person_detection" name="person_detection"/>
+</launch>

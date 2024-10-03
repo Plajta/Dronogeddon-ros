@@ -1,6 +1,6 @@
-from model_def import DetectionWrapper, torch, cv2, np
+from ai.model_def import DetectionWrapper
 import rclpy
-from rlcpy.node import Node
+from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -8,7 +8,7 @@ from cv_bridge import CvBridge, CvBridgeError
 class ModelNode(Node):
     def __init__(self):
         super().__init__("model_node")
-        self.subscription = self.create_subcription(
+        self.subscription = self.create_subscription(
             Image,
             'video_frames',
             self.callback,
