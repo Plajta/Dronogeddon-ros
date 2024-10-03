@@ -43,3 +43,17 @@ class DetectionWrapper:
                 "score": float(score),
                 "class": int(label)
             })
+
+if __name__ == "__main__":
+    cam = cv2.VideoCapture(0)
+    model = DetectionWrapper()
+
+    while True:
+        ret, frame = cam.read()
+
+        model.detect_img(frame)
+        model.parse_objects(frame, 1, 0.5)
+
+        cv2.imshow('Result', frame)
+        if cv2.waitKey(1) == ord('q'):
+            break

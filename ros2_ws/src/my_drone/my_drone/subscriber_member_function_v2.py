@@ -21,6 +21,7 @@ import threading
 import cv2
 import time
 
+
 class MinimalSubscriber(Node):
     def __init__(self):
         super().__init__('minimal_subscriber')
@@ -28,20 +29,17 @@ class MinimalSubscriber(Node):
         self.lock = threading.Lock()
         self.data = None
 
-
         self.telemetry_subscription = self.create_subscription(
             Telemetry,
             'telemtetry',
             self.listener_callback,
             10)
-        #self.subscription  # prevent unused variable warning
-        
+
         self.video_subscription = self.create_subscription(
             Image,
             'video_frames',
             self.video_callback,
             1)
-        self.subscriptions  # prevent unused variable warning
 
         self.bridge = CvBridge()
 
@@ -49,56 +47,46 @@ class MinimalSubscriber(Node):
         self.start_time = time.time()
         self.log_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
 
-        
-
-        
-
-
-
-
     def listener_callback(self, msg):
         self.get_logger().info(f"Drone distance ↑{msg.front} ←{msg.left} →{msg.right} ↓{msg.back} ø{msg.degree}")
         with self.lock:
             self.data = msg
 
-    def video_callback(self,msg):
+    def video_callback(self, msg):
 
         try:
             # Convert ROS Image message to OpenCV image
-            
-            
-
-          
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
-            if not self.data == None:
+            if self.data is None:
+                return
+
+            cv2.putText(frame, 
+                f"{round(time.time()-self.start_time, 2)}s", 
+                (10, 20), 
+                self.font, 1/2, 
+                (0, 255, 255),
+                2,
+                cv2.LINE_4) 
+
+            cv2.putText(frame, 
+                        f"{self.log_time}", 
+                        (770, 20), 
+                        self.font, 1/2, 
+                        (0, 255, 255), 
+                        2, 
+                        cv2.LINE_4) 
+            
+            with self.lock:
                 cv2.putText(frame, 
-                    f"{round(time.time()-self.start_time, 2)}s", 
-                    (10, 20), 
-                    self.font, 1/2, 
-                    (0, 255, 255),
-                    2,
-                    cv2.LINE_4) 
-        
-                cv2.putText(frame, 
-                            f"{self.log_time}", 
-                            (770, 20), 
-                            self.font, 1/2, 
-                            (0, 255, 255), 
-                            2, 
-                            cv2.LINE_4) 
-                
-                with self.lock:
-                    cv2.putText(frame, 
-                            f"left: {self.data.left} front: {self.data.front} right: {self.data.right}", 
-                            (10, 700), 
-                            self.font, 1/2, 
-                            (0, 255, 255), 
-                            2, 
-                            cv2.LINE_4) 
+                        f"left: {self.data.left} front: {self.data.front} right: {self.data.right}", 
+                        (10, 700), 
+                        self.font, 1/2, 
+                        (0, 255, 255), 
+                        2, 
+                        cv2.LINE_4) 
 
             cv2.imshow('Tello Video Stream', frame)
-
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -112,8 +100,6 @@ def main(args=None):
     minimal_subscriber = MinimalSubscriber()
 
     rclpy.spin(minimal_subscriber)
-
-    
     minimal_subscriber.destroy_node()
     rclpy.shutdown()
 
