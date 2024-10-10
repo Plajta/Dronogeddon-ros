@@ -1,0 +1,31 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Time
+    Name: Time
+  - Class: rviz_common/Views
+    Name: Views
+
+Displays:
+  - Name: Grid
+    Class: rviz_common/Grid
+    Enabled: true
+  - Name: Map
+    Class: rviz_common/Map
+    Topic: /map
+    Enabled: true
+  - Name: LaserScan
+    Class: rviz_common/LaserScan
+    Topic: /distance_scan
+    Enabled: true
+  - Name: Odometry
+    Class: rviz_common/Odometry
+    Topic: /odom
+    Enabled: true
+  - Name: Image
+    Class: rviz_common/Image
+    Topic: /camera/image_raw
+    Enabled: true
+  - Name: TF
+    Class: rviz_common/TF
+    Enabled: true
