@@ -15,7 +15,7 @@ class ModelNode(Node):
             self.callback,
             1
         )
-        self.publishing = self.create_publisher()
+        self.publishing = self.create_publisher(ObjectList, "object_detection", 10)
 
         self.bridge = CvBridge()
         self.detection = DetectionWrapper()
@@ -41,7 +41,6 @@ class ModelNode(Node):
 
             message = object_list
             self.publishing.publish(message)
-
 
         except CvBridgeError as e:
             self.get_logger().error(f"Error converting ROS Image to OpenCV Image: {e}")

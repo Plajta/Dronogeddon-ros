@@ -14,7 +14,8 @@
 
 import rclpy
 from rclpy.node import Node
-from drone_interfaces.msg import Telemetry   
+from drone_interfaces.msg import Telemetry
+from drone_interfaces.msg import Object, ObjectList
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import threading
@@ -22,12 +23,13 @@ import cv2
 import time
 
 
-class MinimalSubscriber(Node):
+class MinmessageimalSubscriber(Node):
     def __init__(self):
         super().__init__('minimal_subscriber')
 
         self.lock = threading.Lock()
         self.data = None
+        self.detected_objects = []
 
         self.telemetry_subscription = self.create_subscription(
             Telemetry,
@@ -41,6 +43,13 @@ class MinimalSubscriber(Node):
             self.video_callback,
             1)
 
+        self.ai_subscription = self.create_subscription(
+            ObjectList,
+            'object_detection',
+            self.ai_callback,
+            10
+        )
+
         self.bridge = CvBridge()
 
         self.font = cv2.FONT_HERSHEY_SIMPLEX
@@ -52,6 +61,16 @@ class MinimalSubscriber(Node):
         with self.lock:
             self.data = msg
 
+    def ai_callback(self, msg):
+        parsed = []
+        for object in msg:
+            parsed.append({
+                "cls": object.cls,
+                "coords": [object.x0, object.y0, object.x1, object.y1]
+            })
+
+        self.detected_objects = parsed.copy()
+
     def video_callback(self, msg):
 
         try:
@@ -60,6 +79,10 @@ class MinimalSubscriber(Node):
 
             if self.data is None:
                 return
+            
+            if len(self.detected_objects) != 0:
+                #TODO: draw something
+                pass
 
             cv2.putText(frame, 
                 f"{round(time.time()-self.start_time, 2)}s", 
@@ -76,7 +99,7 @@ class MinimalSubscriber(Node):
                         (0, 255, 255), 
                         2, 
                         cv2.LINE_4) 
-            
+
             with self.lock:
                 cv2.putText(frame, 
                         f"left: {self.data.left} front: {self.data.front} right: {self.data.right}", 
