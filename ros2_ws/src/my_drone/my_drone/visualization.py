@@ -23,7 +23,7 @@ import cv2
 import time
 
 
-class MinmessageimalSubscriber(Node):
+class DroneVis(Node):
     def __init__(self):
         super().__init__('minimal_subscriber')
 
@@ -120,7 +120,7 @@ class MinmessageimalSubscriber(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    minimal_subscriber = MinimalSubscriber()
+    minimal_subscriber = DroneVis()
 
     rclpy.spin(minimal_subscriber)
     minimal_subscriber.destroy_node()

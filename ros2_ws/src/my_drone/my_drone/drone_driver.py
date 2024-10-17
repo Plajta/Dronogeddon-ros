@@ -106,7 +106,7 @@ class DroneComm(Node):
         
     def rc_command_callback(self,msg):
         with self.tello_lock:
-            self.get_logger().info(f"← {msg.left_right_velocity} -----> {msg.forward_backward_velocity} ↓{msg.up_down_velocity} ø{msg.yaw_velocity}")
+            self.get_logger().info(f"←→ {msg.left_right_velocity}  -->{msg.forward_backward_velocity} ↓{msg.up_down_velocity} ø{msg.yaw_velocity}")
             self.tello.send_rc_control(msg.left_right_velocity, msg.forward_backward_velocity, msg.up_down_velocity, msg.yaw_velocity)
 
     def height_command_callback(self,request, response):
@@ -136,6 +136,10 @@ class DroneComm(Node):
         except:
             response.success = False
             return response
+
+    def sevice_command_callback(self,request,response):
+        
+        return response
 
 
 def main(args=None):

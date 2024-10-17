@@ -1,0 +1,4 @@
+string command_type
+int16 command_argument
+---
+bool success

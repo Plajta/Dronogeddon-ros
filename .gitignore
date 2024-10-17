@@ -7,3 +7,4 @@ ros2_ws/src/more_interfaces
 ros2_ws/src/tutorial_interfaces
 ros2_ws/src/py_srvcli
 ros2_ws/src/urdf_tutorial
+tello-ros2
