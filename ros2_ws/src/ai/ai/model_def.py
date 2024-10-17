@@ -14,12 +14,19 @@ class DetectionWrapper:
         self.model = ssdlite320_mobilenet_v3_large(weights=self.weights)
         self.model.eval()
 
-    def parse_objects(self, inp_img, cls, thresh):
+    def filter_objects(self, cls, thresh):
+        output = []
+
         for obj in self.output:
             if obj["class"] == cls and obj["score"] >= thresh:
-                coords = obj["bbox"]
+                output.append({
+                    "class": obj["class"],
+                    "bbox": obj["bbox"]
+                })
 
-                cv2.rectangle(inp_img, (coords[0], coords[1]), (coords[2], coords[3]), (0, 0, 255), 2)
+                #cv2.rectangle(inp_img, (coords[0], coords[1]), (coords[2], coords[3]), (0, 0, 255), 2) for debugging
+
+        return output
 
     def detect_img(self, img):
         torch_img = torch.from_numpy(img).permute(2, 0, 1)

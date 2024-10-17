@@ -16,6 +16,8 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Telemetry.msg"
   "msg/RCcommands.msg"
+  "msg/Object.msg"
+  "msg/ObjectList.msg"
   "srv/HeightCommands.srv"
 )
 
