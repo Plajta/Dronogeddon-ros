@@ -24,11 +24,12 @@ class ModelNode(Node):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
-            message = ObjectList()
-            object_list = []
-
             self.detection.detect_img(frame)
             output = self.detection.filter_objects(1, 0.5)
+
+            message = ObjectList()
+            object_list = []
+            
             for out_object in output:
                 object = Object()
                 object.cls = out_object["class"]

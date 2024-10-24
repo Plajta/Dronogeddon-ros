@@ -19,6 +19,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Object.msg"
   "msg/ObjectList.msg"
   "srv/HeightCommands.srv"
+  "action/Fibonacci.action"
+  "action/Movement.action"
 )
 
 if(BUILD_TESTING)

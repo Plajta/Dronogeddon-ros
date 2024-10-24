@@ -1,0 +1,8 @@
+string order
+int32 value
+---
+bool success
+---
+string status
+int32 completion
+int32 speed
