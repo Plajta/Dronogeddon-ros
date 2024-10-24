@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="undrone" exec="webcam" name="webcam"/>
+  <node pkg="undrone" exec="untelemetry" name="untelemetry"/>
+  <node pkg="my_drone" exec="visualization" name="visualization"/>
+</launch>

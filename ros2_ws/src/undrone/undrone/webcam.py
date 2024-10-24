@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 import cv2
-import numpy as np
 import rclpy
 from rclpy.node import Node
 import cv_bridge
 from sensor_msgs.msg import Image
-from time import sleep
 
 class CameraNode(Node):
     def __init__(self):
@@ -19,6 +17,7 @@ class CameraNode(Node):
 
     def publish_video_frame(self, cam):
         ret, frame = cam.read()
+        frame = cv2.resize(frame, (960, 720))
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
         # convert OpenCV image to ROS Image message
@@ -33,6 +32,7 @@ def main(args=None):
     # initialize model
     cam = CameraNode()
     rclpy.spin(cam)
+    cam.destroy_node()
     rclpy.shutdown()
 
 

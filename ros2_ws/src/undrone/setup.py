@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'webcam = undrone.webcam:main'
+            'webcam = undrone.webcam:main',
+            'untelemetry = undrone.untelemetry:main'
         ],
     },
 )
