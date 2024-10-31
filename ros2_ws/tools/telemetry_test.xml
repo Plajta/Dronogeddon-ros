@@ -2,7 +2,4 @@
   <!--<node pkg="ai" exec="ai" name="AI"/>-->
   <node pkg="my_drone" exec="telemetry" name="telemetry"/>
   <node pkg="my_drone" exec="video" name="video"/>
-  <node pkg="my_drone" exec="static_commands" name="static_commands"/>
-  <node pkg="my_drone" exec="fail_save" name="fail_save"/>
 </launch>
-

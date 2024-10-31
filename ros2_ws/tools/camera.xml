@@ -1,5 +1,7 @@
 <launch>
-  <!--<node pkg="ai" exec="ai" name="AI"/>-->
   <node pkg="my_drone" exec="telemetry" name="telemetry"/>
   <node pkg="my_drone" exec="video" name="video"/>
+  <node pkg="my_drone" exec="fail_save" name="fail_save"/>
+  <node pkg="ai" exec="person_detection" name="AI"/>
 </launch>
+

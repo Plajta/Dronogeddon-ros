@@ -1,4 +1,0 @@
-<launch>
-  <node pkg="my_drone" exec="telemetry" name="telemetry"/>
-  <node pkg="ai" exec="person_detection" name="person_detection"/>
-</launch>
