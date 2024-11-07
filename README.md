@@ -9,15 +9,21 @@
 
 	cd ros_ws
 
-2. **Build the workspace**
+2. **Install dependencies**
+	
+	rosdep update
+
+    rosdep install --from-paths src --ignore-src -r -y
+
+3. **Build the workspace**
 
 	colcon build
 
-3. **Source the setup script**
+4. **Source the setup script**
 
 	source install/setup.bash
 
-4. **Then you can run the nodes**
+5. **Then you can run the nodes**
 
 	ros2 run my_drone telemetry
 	
