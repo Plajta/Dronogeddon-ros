@@ -63,7 +63,7 @@ class DroneVis(Node):
 
     def ai_callback(self, msg):
         parsed = []
-        for object in msg:
+        for object in msg.entries:
             parsed.append({
                 "cls": object.cls,
                 "coords": [object.x0, object.y0, object.x1, object.y1]
@@ -79,10 +79,20 @@ class DroneVis(Node):
 
             if self.data is None:
                 return
-            
+
             if len(self.detected_objects) != 0:
-                #TODO: draw something
-                pass
+                self.get_logger().info("Got object data, rendering")
+                for det_object in self.detected_objects:
+                    cls = det_object["cls"]
+                    if cls == 1:
+                        cls_name = "Human"
+                    else:
+                        cls_name = "Undefined"
+
+                    coords = det_object["coords"]
+
+                    cv2.putText(frame, cls_name, (coords[0], coords[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.rectangle(frame, (coords[2], coords[3]), (coords[1], coords[2]), (0, 0, 255), 2)
 
             cv2.putText(frame, 
                 f"{round(time.time()-self.start_time, 2)}s", 

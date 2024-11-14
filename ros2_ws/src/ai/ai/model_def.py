@@ -24,8 +24,6 @@ class DetectionWrapper:
                     "bbox": obj["bbox"]
                 })
 
-                #cv2.rectangle(inp_img, (coords[0], coords[1]), (coords[2], coords[3]), (0, 0, 255), 2) for debugging
-
         return output
 
     def detect_img(self, img):
@@ -59,8 +57,3 @@ if __name__ == "__main__":
         ret, frame = cam.read()
 
         model.detect_img(frame)
-        model.parse_objects(frame, 1, 0.5)
-
-        cv2.imshow('Result', frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
