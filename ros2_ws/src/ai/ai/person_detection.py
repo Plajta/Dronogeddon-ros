@@ -28,20 +28,30 @@ class ModelNode(Node):
             output = self.detection.filter_objects(1, 0.5)
 
             message = ObjectList()
+
             object_list = []
-            
             for out_object in output:
                 object = Object()
+
+                self.get_logger().info("---------")
+                self.get_logger().info("Class: " + str(out_object["class"]))
+                self.get_logger().info("x0: " + str(out_object["bbox"][0]))
+                self.get_logger().info("x1: " + str(out_object["bbox"][1]))
+                self.get_logger().info("y0: " + str(out_object["bbox"][2]))
+                self.get_logger().info("y1: " + str(out_object["bbox"][3]))
+                self.get_logger().info("---------")
+
                 object.cls = out_object["class"]
-                object.x0 = out_object["bbox"][0]
-                object.x1 = out_object["bbox"][1]
-                object.y0 = out_object["bbox"][2]
-                object.y1 = out_object["bbox"][3]
+                object.x0 = int(out_object["bbox"][0])
+                object.x1 = int(out_object["bbox"][1])
+                object.y0 = int(out_object["bbox"][2])
+                object.y1 = int(out_object["bbox"][3])
 
                 object_list.append(object)
 
-            message = object_list
+            message.entries = object_list
             self.publishing.publish(message)
+            self.get_logger().info("Publishing coordinates to main code")
 
         except CvBridgeError as e:
             self.get_logger().error(f"Error converting ROS Image to OpenCV Image: {e}")
