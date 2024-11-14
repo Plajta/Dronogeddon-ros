@@ -22,5 +22,11 @@ def generate_launch_description():
             name='rviz2',
             output='screen',
             arguments=['-d', 'rviz/rviz_config.rviz']
+        ),
+        Node(
+            package='localization',
+            executable='compass_mapping',
+            name='comapss_mapping',
+            output='screen',
         )
     ])
