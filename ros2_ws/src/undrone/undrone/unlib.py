@@ -50,7 +50,7 @@ class locationSim():
     def mesurmets(self):
         angle = self.get_angle()
 
-        return [self.distance_to_wall(angle),self.distance_to_wall(angle+90),self.distance_to_wall(angle+270),self.distance_to_wall(angle+180),0,int(angle)]
+        return [self.distance_to_wall(angle),self.distance_to_wall(angle-90),self.distance_to_wall(angle+90),self.distance_to_wall(angle+180),0,int(angle)]
 
 
     def set_angle_speed(self,aS):
