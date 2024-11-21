@@ -48,3 +48,11 @@ Very cool and efficitent autonomous security drone using Dji Tello.
 	```
 	ros2 launch <path-to-xml>
 	```
+
+### Configuration files
+
+| Config file        | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| main_drone.xml     | main file for testing with drone               |
+| main_undrone.xml   | main file for testing with fake drone (camera) |
+| telemetry_test.xml | just for testing drone telemetry               |
