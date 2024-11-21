@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'webcam = undrone.webcam:main',
-            'untelemetry = undrone.untelemetry:main'
+            'untelemetry = undrone.untelemetry:main',
+            'drone = undrone.full_undrone:main'
         ],
     },
 )
