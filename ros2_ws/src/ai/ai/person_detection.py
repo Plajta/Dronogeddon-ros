@@ -29,19 +29,24 @@ class ModelNode(Node):
 
             message = ObjectList()
             object_list = []
-            
+
+            n_objects = 0
             for out_object in output:
                 object = Object()
+
+                n_objects += 1
+
                 object.cls = out_object["class"]
-                object.x0 = out_object["bbox"][0]
-                object.x1 = out_object["bbox"][1]
-                object.y0 = out_object["bbox"][2]
-                object.y1 = out_object["bbox"][3]
+                object.x0 = int(out_object["bbox"][0])
+                object.x1 = int(out_object["bbox"][1])
+                object.y0 = int(out_object["bbox"][2])
+                object.y1 = int(out_object["bbox"][3])
 
                 object_list.append(object)
 
-            message = object_list
+            message.entries = object_list
             self.publishing.publish(message)
+            self.get_logger().info(f"Publishing {n_objects} objects to main code")
 
         except CvBridgeError as e:
             self.get_logger().error(f"Error converting ROS Image to OpenCV Image: {e}")

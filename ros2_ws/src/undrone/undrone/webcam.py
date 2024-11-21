@@ -18,7 +18,7 @@ class CameraNode(Node):
     def publish_video_frame(self, cam):
         ret, frame = cam.read()
         frame = cv2.resize(frame, (960, 720))
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
         # convert OpenCV image to ROS Image message
         ros_image = self.cv_bridge.cv2_to_imgmsg(frame, encoding="bgr8")

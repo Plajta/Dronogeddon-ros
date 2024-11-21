@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from drone_interfaces.msg import Telemetry
@@ -55,6 +55,15 @@ class DroneVis(Node):
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.start_time = time.time()
         self.log_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
+        self.dvis_size = (600, 800)
+        self.dvis_ctr = (self.dvis_size[0] // 2, self.dvis_size[1] // 2)
+        self.maxdist = 4000
+
+    def vis_dist(self, image, distance, degree, color):
+        scale = min(self.dvis_ctr)
+        end_pnt = (self.dvis_ctr[1] + int(distance * scale * np.sin(-np.deg2rad(degree)) / self.maxdist),
+                   self.dvis_ctr[0] + int(distance * scale * np.cos(-np.deg2rad(degree)) / self.maxdist))
+        cv2.line(image, self.dvis_ctr[::-1], end_pnt, color, 5)
 
     def listener_callback(self, msg):
         self.get_logger().info(f"Drone distance ↑{msg.front} ←{msg.left} →{msg.right} ↓{msg.back} ø{msg.degree}")
@@ -63,7 +72,7 @@ class DroneVis(Node):
 
     def ai_callback(self, msg):
         parsed = []
-        for object in msg:
+        for object in msg.entries:
             parsed.append({
                 "cls": object.cls,
                 "coords": [object.x0, object.y0, object.x1, object.y1]
@@ -79,10 +88,20 @@ class DroneVis(Node):
 
             if self.data is None:
                 return
-            
+
             if len(self.detected_objects) != 0:
-                #TODO: draw something
-                pass
+                self.get_logger().info("Got object data, rendering")
+                for det_object in self.detected_objects:
+                    cls = det_object["cls"]
+                    if cls == 1:
+                        cls_name = "Human"
+                    else:
+                        cls_name = "Undefined"
+
+                    coords = det_object["coords"]
+
+                    cv2.putText(frame, cls_name, (coords[0], coords[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.rectangle(frame, (coords[2], coords[3]), (coords[1], coords[2]), (0, 0, 255), 2)
 
             cv2.putText(frame, 
                 f"{round(time.time()-self.start_time, 2)}s", 
@@ -98,7 +117,9 @@ class DroneVis(Node):
                         self.font, 1/2, 
                         (0, 255, 255), 
                         2, 
-                        cv2.LINE_4) 
+                        cv2.LINE_4)
+
+            dvis_img = np.zeros([*self.dvis_size, 3])
 
             with self.lock:
                 cv2.putText(frame, 
@@ -107,9 +128,25 @@ class DroneVis(Node):
                         self.font, 1/2, 
                         (0, 255, 255), 
                         2, 
-                        cv2.LINE_4) 
+                        cv2.LINE_4)
+
+                self.vis_dist(dvis_img, self.data.front, self.data.degree, (0, 255, 0))
+                self.vis_dist(dvis_img, self.data.right, self.data.degree+90, (0, 255, 0))
+                self.vis_dist(dvis_img, self.data.back, self.data.degree+180, (0, 255, 0))
+                self.vis_dist(dvis_img, self.data.left, self.data.degree+270, (0, 255, 0))
+
+                """
+                self.get_logger().error(f"{self.dvis_ctr}, {(self.dvis_ctr[0] + int(self.data.front * scale * np.sin((self.data.degree +   0)*np.pi/2) / 4000), self.dvis_ctr[1] + int(self.data.front * scale * np.cos((self.data.degree +   0)*np.pi/2.) / 4000))}")
+
+                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.front * scale * np.sin(-np.deg2rad((self.data.degree +   0))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree +   0))) / 4000)), (0, 255, 0), 10)
+                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.right * scale * np.sin(-np.deg2rad((self.data.degree +  90))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree +  90))) / 4000)), (0, 255, 0), 10)
+                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.back  * scale * np.sin(-np.deg2rad((self.data.degree + 180))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree + 180))) / 4000)), (0, 255, 0), 10)
+                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.left  * scale * np.sin(-np.deg2rad((self.data.degree + 270))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree + 270))) / 4000)), (0, 255, 0), 10)
+                """
+            # frame[-self.dvis_size:, -self.dvis_size:] = dvis_img
 
             cv2.imshow('Tello Video Stream', frame)
+            cv2.imshow('vizriz', dvis_img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
