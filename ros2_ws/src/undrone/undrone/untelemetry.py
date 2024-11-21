@@ -13,7 +13,7 @@ class UntelemtryNode(Node):
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
 
         self.degree = 0
-        self.size = 300
+        self.size = 4000
 
     def telemetry_callback(self):
         msg = Telemetry()

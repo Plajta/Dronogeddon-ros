@@ -57,13 +57,13 @@ class DroneVis(Node):
         self.log_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
         self.dvis_size = (600, 800)
         self.dvis_ctr = (self.dvis_size[0] // 2, self.dvis_size[1] // 2)
-        self.maxdist = 4000
+        self.maxdist = 6000
 
-    def vis_dist(self, image, distance, degree, color):
+    def vis_dist(self, image, distance, clip, degree, color):
         scale = min(self.dvis_ctr)
-        end_pnt = (self.dvis_ctr[1] + int(distance * scale * np.sin(-np.deg2rad(degree)) / self.maxdist),
-                   self.dvis_ctr[0] + int(distance * scale * np.cos(-np.deg2rad(degree)) / self.maxdist))
-        cv2.line(image, self.dvis_ctr[::-1], end_pnt, color, 5)
+        end_pnt = (self.dvis_ctr[1] + int(distance * scale * np.sin(-np.deg2rad(degree)) / clip),
+                   self.dvis_ctr[0] + int(distance * scale * np.cos(-np.deg2rad(degree)) / clip))
+        cv2.line(image, self.dvis_ctr[::-1], end_pnt, color, scale//100)
 
     def listener_callback(self, msg):
         self.get_logger().info(f"Drone distance ↑{msg.front} ←{msg.left} →{msg.right} ↓{msg.back} ø{msg.degree}")
@@ -119,7 +119,7 @@ class DroneVis(Node):
                         2, 
                         cv2.LINE_4)
 
-            dvis_img = np.zeros([*self.dvis_size, 3])
+            dvis_img = np.zeros([*self.dvis_size, 3], dtype=np.uint8)
 
             with self.lock:
                 cv2.putText(frame, 
@@ -130,10 +130,13 @@ class DroneVis(Node):
                         2, 
                         cv2.LINE_4)
 
-                self.vis_dist(dvis_img, self.data.front, self.data.degree, (0, 255, 0))
-                self.vis_dist(dvis_img, self.data.right, self.data.degree+90, (0, 255, 0))
-                self.vis_dist(dvis_img, self.data.back, self.data.degree+180, (0, 255, 0))
-                self.vis_dist(dvis_img, self.data.left, self.data.degree+270, (0, 255, 0))
+                # clip = max(self.maxdist, self.data.front, self.data.right, self.data.back, self.data.left)
+                clip = self.maxdist
+
+                self.vis_dist(dvis_img, self.data.front, clip, self.data.degree, (0, 0, 200))
+                self.vis_dist(dvis_img, self.data.right, clip, self.data.degree+90, (200, 200, 200))
+                self.vis_dist(dvis_img, self.data.back, clip, self.data.degree+180, (200, 50, 50))
+                self.vis_dist(dvis_img, self.data.left, clip, self.data.degree+270, (200, 200, 200))
 
                 """
                 self.get_logger().error(f"{self.dvis_ctr}, {(self.dvis_ctr[0] + int(self.data.front * scale * np.sin((self.data.degree +   0)*np.pi/2) / 4000), self.dvis_ctr[1] + int(self.data.front * scale * np.cos((self.data.degree +   0)*np.pi/2.) / 4000))}")
