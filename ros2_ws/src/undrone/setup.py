@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'webcam = undrone.webcam:main',
             'untelemetry = undrone.untelemetry:main',
-            'drone = undrone.full_undrone:main'
+            'drone = undrone.full_undrone:main',
+            'keys = undrone.key_control:main'
         ],
     },
 )
