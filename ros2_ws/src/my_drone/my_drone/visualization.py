@@ -55,15 +55,36 @@ class DroneVis(Node):
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.start_time = time.time()
         self.log_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
-        self.dvis_size = (600, 800)
+        self.dvis_size = (300, 400)
         self.dvis_ctr = (self.dvis_size[0] // 2, self.dvis_size[1] // 2)
-        self.maxdist = 6000
+        self.maxdist = 4500
+
+        img = cv2.imread("/home/jan/Dokumenty/Dronogeddon-ros/ros2_ws/src/my_drone/my_drone/tello.png", cv2.IMREAD_UNCHANGED)
+        self.get_logger().info(f"loaded Tello PNG: {img.shape}")
+        self.bin_im = np.array(img[:, :, 3][::-1,::], dtype=np.bool_)
 
     def vis_dist(self, image, distance, clip, degree, color):
         scale = min(self.dvis_ctr)
         end_pnt = (self.dvis_ctr[1] + int(distance * scale * np.sin(-np.deg2rad(degree)) / clip),
                    self.dvis_ctr[0] + int(distance * scale * np.cos(-np.deg2rad(degree)) / clip))
-        cv2.line(image, self.dvis_ctr[::-1], end_pnt, color, scale//100)
+        cv2.line(image, self.dvis_ctr[::-1], end_pnt, color, max(1, scale//50))
+
+    def vis_drone(self, image, degree, color):
+        scale = min(self.dvis_ctr)
+        rows, cols = self.bin_im.astype(np.uint8).shape
+        M = cv2.getRotationMatrix2D(((cols - 1) / 2.0, (rows - 1) / 2.0), -degree, 1)
+        tello = cv2.warpAffine(self.bin_im.astype(np.uint8), M, (cols, rows))
+        tello = cv2.resize(tello, (scale//4*2, scale//4*2))
+
+        rows, cols = tello.shape
+        dst = np.zeros((cols, rows, 3), dtype=np.uint8)
+        for i, clr in enumerate(color):
+            dst[:,:,i] = tello * clr
+
+        yt, xl = self.dvis_ctr[0]-cols//2, self.dvis_ctr[1]-rows//2
+        yb, xr = yt + cols, xl + rows
+        image[yt:yb, xl:xr] &= np.bitwise_not(cv2.cvtColor(tello*255, cv2.COLOR_GRAY2RGB))
+        image[yt:yb, xl:xr] |= dst
 
     def listener_callback(self, msg):
         self.get_logger().info(f"Drone distance ↑{msg.front} ←{msg.left} →{msg.right} ↓{msg.back} ø{msg.degree}")
@@ -137,19 +158,13 @@ class DroneVis(Node):
                 self.vis_dist(dvis_img, self.data.right, clip, self.data.degree+90, (200, 200, 200))
                 self.vis_dist(dvis_img, self.data.back, clip, self.data.degree+180, (200, 50, 50))
                 self.vis_dist(dvis_img, self.data.left, clip, self.data.degree+270, (200, 200, 200))
+                self.vis_drone(dvis_img, self.data.degree, (50, 50, 120))
 
-                """
-                self.get_logger().error(f"{self.dvis_ctr}, {(self.dvis_ctr[0] + int(self.data.front * scale * np.sin((self.data.degree +   0)*np.pi/2) / 4000), self.dvis_ctr[1] + int(self.data.front * scale * np.cos((self.data.degree +   0)*np.pi/2.) / 4000))}")
-
-                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.front * scale * np.sin(-np.deg2rad((self.data.degree +   0))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree +   0))) / 4000)), (0, 255, 0), 10)
-                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.right * scale * np.sin(-np.deg2rad((self.data.degree +  90))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree +  90))) / 4000)), (0, 255, 0), 10)
-                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.back  * scale * np.sin(-np.deg2rad((self.data.degree + 180))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree + 180))) / 4000)), (0, 255, 0), 10)
-                cv2.line(dvis_img, self.dvis_ctr[::-1], (self.dvis_ctr[1] + int(self.data.left  * scale * np.sin(-np.deg2rad((self.data.degree + 270))) / 4000), self.dvis_ctr[0] + int(self.data.front * scale * np.cos(-np.deg2rad((self.data.degree + 270))) / 4000)), (0, 255, 0), 10)
-                """
-            # frame[-self.dvis_size:, -self.dvis_size:] = dvis_img
+            mask = cv2.cvtColor(dvis_img, cv2.COLOR_BGR2GRAY).astype(dtype=np.bool_).astype(dtype=np.uint8)*255
+            frame[-self.dvis_size[0]:, -self.dvis_size[1]:] &= np.bitwise_not(cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB))
+            frame[-self.dvis_size[0]:, -self.dvis_size[1]:] |= dvis_img
 
             cv2.imshow('Tello Video Stream', frame)
-            cv2.imshow('vizriz', dvis_img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
