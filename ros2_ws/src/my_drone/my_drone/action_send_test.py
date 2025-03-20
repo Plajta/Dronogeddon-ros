@@ -59,7 +59,7 @@ class FibonacciActionClient(Node):
         try:
             speed = feedback_msg.speed 
         except:
-            self.get_logger().info('completion error')
+            self.get_logger().info('speed error')
 
 
         self.get_logger().info(f'Received feedback: {status} completed {completion} at speed {speed}')

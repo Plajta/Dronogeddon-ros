@@ -29,10 +29,12 @@ class MovementServer(Node):
     def execute_callback(self, goal_handle):
         self.get_logger().info('Executing goal...')
 
-        
-        self.get_logger().info(f"ordered to {goal_handle.request.order}")
-
+        order =goal_handle.request.order
         end_value = goal_handle.request.value
+
+        
+        self.get_logger().info(f"ordered to {order} || to value {end_value}")
+        
         
         feedback_msg = Movement.Feedback()
         feedback_msg.status = "Waiting..."
@@ -43,13 +45,13 @@ class MovementServer(Node):
 
         time.sleep(2)
 
-        for i in range(end_value):
-            feedback_msg.status = "on Going..."
-            feedback_msg.completion = int(i*100/end_value)
-            feedback_msg.speed = 30 + random.randint(-5,5)
+        # for i in range(end_value):
+        #     feedback_msg.status = "on Going..."
+        #     feedback_msg.completion = int(i*100/end_value)
+        #     feedback_msg.speed = 30 + random.randint(-5,5)
             
-            goal_handle.publish_feedback(feedback_msg)
-            time.sleep(1)
+        #     goal_handle.publish_feedback(feedback_msg)
+        #     time.sleep(1)
 
         goal_handle.succeed()
 

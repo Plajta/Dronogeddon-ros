@@ -100,6 +100,10 @@ class DroneComm(Node):
             if len(responses) < 6:
                 return self.mesurments()
             else:
+                if responses[1] > 1200:
+                    responses[1] = 1200
+                    
+                            #front               left               right            back           accuraci            degrees
                 return [int(responses[1]),int(responses[4]),int(responses[3]),int(responses[2]),int(responses[5]),self.tello.get_yaw()+180]
         except Exception as e:
             return self.mesurments()

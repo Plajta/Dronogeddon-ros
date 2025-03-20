@@ -7,7 +7,7 @@ from threading import Lock
 from time import sleep
 
 class locationSim():
-    def __init__(self,x=5000,y=5000,size=10000,fps=5):
+    def __init__(self,x=500,y=500,size=1000,fps=5):
         #super().__init__("location_sim")
         self.lock = Lock()
 
@@ -93,11 +93,11 @@ class locationSim():
             with self.lock:
                 self.angle += angle_speed / self.fps
                 self.angle = self.angle%360
-                self.x += forward_speed*80 * dx / self.fps
-                self.y += forward_speed*80 * dy / self.fps
+                self.x += forward_speed*8/2 * dx / self.fps
+                self.y += forward_speed*8/2 * dy / self.fps
 
-                self.y += side_speed*80 * dx / self.fps
-                self.x += side_speed*80 * dy / self.fps
+                self.y += side_speed*8/2 * dx / self.fps
+                self.x += side_speed*8/2 * dy / self.fps
             
 
             with self.lock:
@@ -108,7 +108,7 @@ class locationSim():
 
 
 if __name__ == '__main__':
-    gg = locationSim(10,500,10000,5)
+    gg = locationSim(10,500,1000,5)
 
 
     print(gg.mesurmets())

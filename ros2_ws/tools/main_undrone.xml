@@ -1,6 +1,6 @@
 <launch>
   <node pkg="undrone" exec="webcam" name="webcam"/>
-  <node pkg="undrone" exec="untelemetry" name="untelemetry"/>
+  <node pkg="undrone" exec="drone" name="drone"/>
   <node pkg="my_drone" exec="visualization" name="visualization"/>
   <node pkg="ai" exec="person_detection" name="AI"/>
 </launch>
