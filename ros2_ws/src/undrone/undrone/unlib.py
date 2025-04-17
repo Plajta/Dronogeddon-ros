@@ -97,7 +97,7 @@ class locationSim():
                 self.y += forward_speed*8/2 * dy / self.fps
 
                 self.y += side_speed*8/2 * dx / self.fps
-                self.x += side_speed*8/2 * dy / self.fps
+                self.x -= side_speed*8/2 * dy / self.fps
             
 
             with self.lock:
