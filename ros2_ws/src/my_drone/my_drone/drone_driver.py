@@ -78,6 +78,7 @@ class DroneComm(Node):
         msg.right = data[2]
         msg.back = data[3]
         msg.degree = data[5]
+        msg.matrix = data[6]
         self.telemetry_publisher.publish(msg)
         self.get_logger().info('Publishing telemetry')
         
@@ -95,18 +96,47 @@ class DroneComm(Node):
             
 
     def mesurments(self):
+        #responses = self.tello.send_read_command('EXT tof?')
         try:
-            responses = self.tello.send_read_command('EXT tof?').split()
+            recived = self.tello.send_read_command('EXT tof?')
+
+            try:
+                data_string = self.extract_data_string(recived)
+                data = self.extract_data(data_string)
+
+                new_data = []
+
+                matrix = 8
+
+                for i in range(matrix,0,-1):
+                    for j in range(0,matrix):
+                        new_data.append(data[i+j*matrix-1])
+
+                data = new_data
+
+
+            except Exception as e:
+                print(f"exception while decoding: {e}")
+                data=[]
+                
+
+            responses = recived.split()
+
             if len(responses) < 6:
+                print("number of responses under 6")
                 return self.mesurments()
             else:
-                if responses[1] > 1200:
-                    responses[1] = 1200
-                    
+                if int(responses[1]) > 1200:
+                    responses[1] = "1200"
+
+
+
                             #front               left               right            back           accuraci            degrees
-                return [int(responses[1]),int(responses[4]),int(responses[3]),int(responses[2]),int(responses[5]),self.tello.get_yaw()+180]
+                return [int(responses[1]),int(responses[4]),int(responses[3]),int(responses[2]),int(responses[5]),self.tello.get_yaw()+180,data]
         except Exception as e:
+            print(f"exception ocurred:\t{e}")
             return self.mesurments()
+        #return [0,0,0,0,0,0]
         
     def rc_command_callback(self,msg):
         with self.tello_lock:
@@ -144,6 +174,41 @@ class DroneComm(Node):
     def sevice_command_callback(self,request,response):
         
         return response
+    
+    def unpack_chars_using_95(self,high, mid, low):
+
+        pack = (ord(low) - 32) + (ord(mid) - 32) * 95 + (ord(high) - 32) * 95 * 95
+
+
+        num1 = pack & 0b111111111
+        num2 = (pack >> 9) & 0b111111111
+
+        return(num2,num1)
+
+    def extract_data(self,string):
+        data = []
+
+        for i in range(0,96,3):
+            try:
+                duet = self.unpack_chars_using_95(string[i],string[i+1],string[i+2])
+                for i in duet:
+                    data.append(i)
+            except:
+                pass
+
+        return data
+
+
+    def extract_data_string(self,string):
+        source_split = string.split()
+
+        seam = 0
+        for i in range(6):
+            seam+= len(source_split[i])+1
+
+        export = string[seam:]
+
+        return export
 
 
 def main(args=None):
