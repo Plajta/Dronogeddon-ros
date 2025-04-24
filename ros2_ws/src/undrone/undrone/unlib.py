@@ -1,5 +1,6 @@
 import math
-import random
+from itertools import product
+
 import rclpy
 from rclpy.node import Node
 import threading
@@ -26,12 +27,13 @@ class locationSim():
         self.video_publisher_thread.start()
         sleep(1/10)
         
-    def distance_to_wall(self,angle):
+    def distance_to_wall(self,angle, pitch=0.0):
         
         theta = math.radians(angle%360)
         
         dx = math.cos(theta)
         dy = math.sin(theta)
+        dz = math.cos(math.radians(pitch))
         
         distance = 0.0
         
@@ -45,13 +47,17 @@ class locationSim():
             
             distance += 1.0
         
-        return int(distance)
+        return int(distance/dz)
 
     def mesurmets(self):
         angle = self.get_angle()
+        pitch = 0
+        dists = []
 
-        return [self.distance_to_wall(angle),self.distance_to_wall(angle-90),self.distance_to_wall(angle+90),self.distance_to_wall(angle+180),0,int(angle)]
+        for i, j in product([-22.5, -16.07, -9.64, -3.21, 3.21, 9.64, 16.07, 22.5], repeat=2):
+            dists.append(self.distance_to_wall(angle + j, pitch + i))
 
+        return [self.distance_to_wall(angle),self.distance_to_wall(angle-90),self.distance_to_wall(angle+90),self.distance_to_wall(angle+180),0,int(angle),dists]
 
     def set_angle_speed(self,aS):
         with self.lock:

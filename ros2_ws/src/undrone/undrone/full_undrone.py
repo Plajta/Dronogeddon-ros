@@ -15,17 +15,15 @@
 import rclpy
 import rclpy.executors
 from rclpy.node import Node
-import random
 from djitellopy import Tello
 from threading import Lock
 import threading
 from time import sleep
 
-from drone_interfaces.msg import Telemetry
-from drone_interfaces.msg import RCcommands
+from drone_interfaces.msg import Telemetry, RCcommands
 from drone_interfaces.srv import HeightCommands
 from std_msgs.msg import String 
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField
 
 from cv_bridge import CvBridge
 import cv2
@@ -77,6 +75,7 @@ class DroneComm(Node):
         msg.right = data[2]
         msg.back = data[3]
         msg.degree = data[5]
+        msg.matrix = data[6]
         self.telemetry_publisher.publish(msg)
         self.get_logger().info('Publishing telemetry')
         
