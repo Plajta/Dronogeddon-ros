@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from drone_interfaces.msg import Telemetry   
+from drone_interfaces.msg import ToFDistances   
 from drone_interfaces.msg import RCcommands
 from drone_interfaces.srv import HeightCommands
 from time import sleep
@@ -14,8 +14,8 @@ class FailSave(Node):
         self.dc = DroneControls(self)
         
         self.telemetry_subscription = self.create_subscription(
-            Telemetry,
-            'telemtetry',
+            ToFDistances,
+            'ToF_distances',
             self.listener_callback,
             1)
 

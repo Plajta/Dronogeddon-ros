@@ -21,7 +21,7 @@ from threading import Lock
 import threading
 from time import sleep
 
-from drone_interfaces.msg import Telemetry
+from drone_interfaces.msg import ToFDistances
 from drone_interfaces.msg import RCcommands
 from drone_interfaces.srv import HeightCommands
 from std_msgs.msg import String 
@@ -38,7 +38,7 @@ class DroneComm(Node):
         super().__init__('drone_comm')
 
         #publisher for telemetry data to "telemetry" topic
-        self.telemetry_publisher = self.create_publisher(Telemetry, 'telemtetry', 10)
+        self.telemetry_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
         telemetry_timer_period = 1/10  #period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
         
@@ -63,13 +63,14 @@ class DroneComm(Node):
         self.tello = Tello()
         self.tello.connect()
         self.tello.streamon()
+        self.tello.get_current_state()
         
         
         self.video_publisher_thread.start()
 
 
     def telemetry_callback(self):
-        msg = Telemetry()
+        msg = ToFDistances()
         with self.tello_lock:
             data = self.mesurments()
 
@@ -80,7 +81,7 @@ class DroneComm(Node):
         msg.degree = data[5]
         msg.matrix = data[6]
         self.telemetry_publisher.publish(msg)
-        self.get_logger().info('Publishing telemetry')
+        self.get_logger().info('Publishing ToF readings')
         
     def publish_video_frame(self,interval):
         self.frame_read = self.tello.get_frame_read()
@@ -96,48 +97,38 @@ class DroneComm(Node):
             
 
     def mesurments(self):
-        #responses = self.tello.send_read_command('EXT tof?')
         try:
             recived = self.tello.send_read_command('EXT tof?')
-
             try:
                 data_string = self.extract_data_string(recived)
                 data = self.extract_data(data_string)
-
                 new_data = []
-
                 matrix = 8
-
                 for i in range(matrix,0,-1):
                     for j in range(0,matrix):
                         new_data.append(data[i+j*matrix-1])
-
                 data = new_data
 
-
             except Exception as e:
-                print(f"exception while decoding: {e}")
+                print(f"exception while decoding matrix: {e}")
                 data=[]
                 
 
             responses = recived.split()
-
             if len(responses) < 6:
                 print("number of responses under 6")
                 return self.mesurments()
             else:
                 if int(responses[1]) > 1200:
                     responses[1] = "1200"
-
-
-
                             #front               left               right            back           accuraci            degrees
                 return [int(responses[1]),int(responses[4]),int(responses[3]),int(responses[2]),int(responses[5]),self.tello.get_yaw()+180,data]
-        except Exception as e:
-            print(f"exception ocurred:\t{e}")
-            return self.mesurments()
-        #return [0,0,0,0,0,0]
         
+        except Exception as e:
+            print(f"exception ocurred while geting mesurments:\t{e}")
+            return self.mesurments()
+        
+
     def rc_command_callback(self,msg):
         with self.tello_lock:
             self.get_logger().info(f"←→ {msg.left_right_velocity}  -->{msg.forward_backward_velocity} ↓{msg.up_down_velocity} ø{msg.yaw_velocity}")
@@ -176,7 +167,6 @@ class DroneComm(Node):
         return response
     
     def unpack_chars_using_95(self,high, mid, low):
-
         pack = (ord(low) - 32) + (ord(mid) - 32) * 95 + (ord(high) - 32) * 95 * 95
 
 

@@ -31,6 +31,7 @@ setup(
             'action_client = my_drone.action_client:main',
             'movement = my_drone.lib.actions:main',
             'action_test = my_drone.action_send_test:main',
+            'matrix = my_drone.temp_show_matrix:main'
         ],
     },
 )

@@ -2,13 +2,13 @@
 
 import rclpy
 from rclpy.node import Node
-from drone_interfaces.msg import Telemetry
+from drone_interfaces.msg import ToFDistances
 import math
 
 class UntelemtryNode(Node):
     def __init__(self):
         super().__init__("untelemtry_node")
-        self.telemetry_publisher = self.create_publisher(Telemetry, 'telemtetry', 10)
+        self.telemetry_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
         telemetry_timer_period = 1 / 10  # period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
 
@@ -16,7 +16,7 @@ class UntelemtryNode(Node):
         self.size = 4000
 
     def telemetry_callback(self):
-        msg = Telemetry()
+        msg = ToFDistances()
         angle_rad = math.radians(self.degree % 90)
 
         if self.degree % 90 <= 45:

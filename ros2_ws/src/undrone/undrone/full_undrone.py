@@ -20,7 +20,7 @@ from threading import Lock
 import threading
 from time import sleep
 
-from drone_interfaces.msg import Telemetry, RCcommands
+from drone_interfaces.msg import ToFDistances, RCcommands
 from drone_interfaces.srv import HeightCommands
 from std_msgs.msg import String 
 from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField
@@ -37,7 +37,7 @@ class DroneComm(Node):
         super().__init__('drone_comm')
 
         #publisher for telemetry data to "telemetry" topic
-        self.telemetry_publisher = self.create_publisher(Telemetry, 'telemtetry', 10)
+        self.telemetry_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
         telemetry_timer_period = 1/10  #period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
         
@@ -66,7 +66,7 @@ class DroneComm(Node):
 
 
     def telemetry_callback(self):
-        msg = Telemetry()
+        msg = ToFDistances()
         with self.tello_lock:
             data = self.mesurments()
 

@@ -14,7 +14,7 @@
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from drone_interfaces.msg import Telemetry
+from drone_interfaces.msg import ToFDistances
 from drone_interfaces.msg import Object, ObjectList
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -32,8 +32,8 @@ class DroneVis(Node):
         self.detected_objects = []
 
         self.telemetry_subscription = self.create_subscription(
-            Telemetry,
-            'telemtetry',
+            ToFDistances,
+            'ToF_distances',
             self.listener_callback,
             10)
 
