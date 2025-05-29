@@ -20,8 +20,10 @@ from djitellopy import Tello
 from threading import Lock
 import threading
 from time import sleep
+import socket
 
 from drone_interfaces.msg import ToFDistances
+from drone_interfaces.msg import TelemetryData
 from drone_interfaces.msg import RCcommands
 from drone_interfaces.srv import HeightCommands
 from std_msgs.msg import String 
@@ -30,15 +32,18 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 
-
-
 class DroneComm(Node):
 
     def __init__(self):
         super().__init__('drone_comm')
 
-        #publisher for telemetry data to "telemetry" topic
-        self.telemetry_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
+        #publisher for distances from ToF data to "ToF_distances" topic
+        self.tof_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
+        tof_timer_period = 1/10  #period of publishing
+        self.timer = self.create_timer(tof_timer_period, self.tof_callback)
+
+        #publisher for tello telemetry data to "telemetry" topic
+        self.telemetry_publisher = self.create_publisher(TelemetryData, 'telemetry', 10)
         telemetry_timer_period = 1/10  #period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
         
@@ -63,13 +68,12 @@ class DroneComm(Node):
         self.tello = Tello()
         self.tello.connect()
         self.tello.streamon()
-        self.tello.get_current_state()
-        
+         
         
         self.video_publisher_thread.start()
 
 
-    def telemetry_callback(self):
+    def tof_callback(self):
         msg = ToFDistances()
         with self.tello_lock:
             data = self.mesurments()
@@ -80,8 +84,43 @@ class DroneComm(Node):
         msg.back = data[3]
         msg.degree = data[5]
         msg.matrix = data[6]
-        self.telemetry_publisher.publish(msg)
+        self.tof_publisher.publish(msg)
         self.get_logger().info('Publishing ToF readings')
+
+    def telemetry_callback(self):
+        try:
+            data = self.tello.get_current_state()
+            self.tello.get_current_state()
+
+            msg = TelemetryData()
+            msg.pitch = int(data.get('pitch', 0))
+            msg.roll = int(data.get('roll', 0))
+            msg.yaw = int(data.get('yaw', 0))
+
+            msg.vgx = int(data.get('vgx', 0))
+            msg.vgy = int(data.get('vgy', 0))
+            msg.vgz = int(data.get('vgz', 0))
+
+            msg.templ = int(data.get('templ', 0))
+            msg.temph = int(data.get('temph', 0))
+
+            msg.tof = int(data.get('tof', 0))
+            msg.h = int(data.get('h', 0))
+            msg.bat = int(data.get('bat', 0))
+
+            msg.baro = float(data.get('baro', 0.0))
+            msg.time = int(data.get('time', 0))
+
+            msg.agx = float(data.get('agx', 0.0))
+            msg.agy = float(data.get('agy', 0.0))
+            msg.agz = float(data.get('agz', 0.0))
+
+            self.telemetry_publisher.publish(msg)
+            self.get_logger().info('Publikována telemetrie.')
+
+        except:
+            pass
+
         
     def publish_video_frame(self,interval):
         self.frame_read = self.tello.get_frame_read()

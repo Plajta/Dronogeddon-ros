@@ -2,4 +2,6 @@
   <node pkg="ai" exec="person_detection" name="AI"/>
   <node pkg="my_drone" exec="drone_driver" name="drone_driver"/>
   <node pkg="my_drone" exec="visualization" name="visualization"/>
+  <node pkg="visualization" exec="rviz_setup" name="rviz_setup"/>
+  <node pkg="rviz2" exec="rviz2" name="rviz2" args="-d $(find-pkg-share visualization)/config/tello.rviz"/>
 </launch>

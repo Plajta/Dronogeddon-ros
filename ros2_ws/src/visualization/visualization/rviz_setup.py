@@ -17,7 +17,7 @@ import numpy as np
 import math
 import rclpy
 from rclpy.node import Node
-from drone_interfaces.msg import Telemetry, RCcommands
+from drone_interfaces.msg import ToFDistances, RCcommands
 from drone_interfaces.srv import HeightCommands
 from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField
 from scipy.spatial.transform import Rotation as R
@@ -38,8 +38,8 @@ class RvizSetup(Node):
         self.tof8x8_publisher = self.create_publisher(PointCloud2, 'tof8x8', 10)
 
         self.telemetry_subscription = self.create_subscription(
-            Telemetry,
-            'telemtetry',
+            ToFDistances,
+            'ToF_distances',
             self.listener_callback,
             10)
 

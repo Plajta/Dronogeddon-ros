@@ -14,10 +14,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Telemetry.msg"
+  "msg/TelemetryData.msg"
   "msg/RCcommands.msg"
   "msg/Object.msg"
   "msg/ObjectList.msg"
+  "msg/ToFDistances.msg"
   "srv/HeightCommands.srv"
   "action/Fibonacci.action"
   "action/Movement.action"
