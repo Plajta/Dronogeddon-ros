@@ -16,16 +16,19 @@ from itertools import product
 import numpy as np
 import math
 import rclpy
+from pathlib import Path
+from ament_index_python import get_package_share_directory
 from rclpy.node import Node
 from drone_interfaces.msg import ToFDistances, RCcommands
 from drone_interfaces.srv import HeightCommands
-from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField
+from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField, CameraInfo
 from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 from cv_bridge import CvBridge, CvBridgeError
 import threading
 import cv2
+import yaml
 
 
 class RvizSetup(Node):
@@ -36,6 +39,7 @@ class RvizSetup(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.laserscan_publisher = self.create_publisher(LaserScan, 'laserscan', 10)
         self.tof8x8_publisher = self.create_publisher(PointCloud2, 'tof8x8', 10)
+        self.camerainfo_publisher = self.create_publisher(CameraInfo, 'camera_info', 1)
 
         self.telemetry_subscription = self.create_subscription(
             ToFDistances,
@@ -66,6 +70,7 @@ class RvizSetup(Node):
         self.velocity: list[float] = [0.0]*4
         self.position: list[float] = [0.0]*4
         self.dividor = 1e2
+        self.frame = None
 
     def listener_callback(self, msg):
         with self.lock:
@@ -84,7 +89,33 @@ class RvizSetup(Node):
         self.get_logger().info(f'Publishing Pose & LaserScan to Rviz [{self.position[3]}, {self.telemetry[0]}]')
 
     def video_callback(self, msg):
-        pass
+        try:
+            # Convert ROS Image message to OpenCV image
+            frame_msg = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            ci = CameraInfo()
+            filename = Path(get_package_share_directory("visualization")) / "config" / "camera_info.yaml"
+            try:
+                with filename.open() as f:
+                    calib = yaml.safe_load(f)
+                    if calib is not None:
+                        # fill in CameraInfo fields
+                        ci.width = calib['image_width']
+                        ci.height = calib['image_height']
+                        ci.distortion_model = calib['distortion_model']
+                        ci.d = calib['distortion_coefficients']['data']
+                        ci.k = calib['camera_matrix']['data']
+                        ci.r = calib['rectification_matrix']['data']
+                        ci.p = calib['projection_matrix']['data']
+            except OSError:  # OK if file did not exist
+                pass
+
+            ci.header.frame_id = "tello_main"
+            ci.header.stamp = self.get_clock().now().to_msg()
+
+            self.camerainfo_publisher.publish(ci)
+
+        except CvBridgeError as e:
+            self.get_logger().error(f"Error converting ROS Image to OpenCV Image: {e}")
 
     def rc_command_callback(self, msg):
         with self.lock:
@@ -166,7 +197,7 @@ class RvizSetup(Node):
         self.position[0] += (+ self.velocity[1] * dx - self.velocity[0] * dy) * 4 / self.sim_fps
         self.position[1] += (- self.velocity[1] * dy - self.velocity[0] * dx) * 4 / self.sim_fps
         self.position[2] = 300.0
-        self.get_logger().warning(f'POSITION: {self.position}')
+        # self.get_logger().warning(f'POSITION: {self.position}')
 
         self.handle_pose()
 

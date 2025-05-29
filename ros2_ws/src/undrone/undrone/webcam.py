@@ -22,6 +22,8 @@ class CameraNode(Node):
 
         # convert OpenCV image to ROS Image message
         ros_image = self.cv_bridge.cv2_to_imgmsg(frame, encoding="bgr8")
+        ros_image.header.frame_id = "tello_main"
+        ros_image.header.stamp = self.get_clock().now().to_msg()
         self.video_publisher.publish(ros_image)
         self.get_logger().info('Publishing un-droned video frame (webcam)')
 
