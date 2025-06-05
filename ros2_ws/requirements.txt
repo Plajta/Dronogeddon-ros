@@ -1,0 +1,14 @@
+# Other packages
+opencv-python
+pytest # TODO: in case we would like to switch to test-driven devel: "colcon test"
+
+# Pytorch
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch 
+torchvision 
+torchaudio
+
+# ROS packages
+empy
+catkin_pkg
+lark
