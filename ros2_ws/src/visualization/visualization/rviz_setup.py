@@ -19,7 +19,7 @@ import rclpy
 from pathlib import Path
 from ament_index_python import get_package_share_directory
 from rclpy.node import Node
-from drone_interfaces.msg import ToFDistances, RCcommands
+from drone_interfaces.msg import ToFDistances, TelemetryData
 from drone_interfaces.srv import HeightCommands
 from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField, CameraInfo
 from scipy.spatial.transform import Rotation as R
@@ -44,85 +44,96 @@ class RvizSetup(Node):
         self.telemetry_subscription = self.create_subscription(
             ToFDistances,
             'ToF_distances',
-            self.listener_callback,
+            self.ToF_callback,
             10)
 
-        self.video_subscription = self.create_subscription(
-            Image,
-            'video_frames',
-            self.video_callback,
-            1)
+        # self.video_subscription = self.create_subscription(
+        #     Image,
+        #     'video_frames',
+        #     self.video_callback,
+        #     1)
 
         self.incoming_commands = self.create_subscription(
-            RCcommands,
-            'rc_commands',
-            self.rc_command_callback,
+            TelemetryData,
+            'telemetry',
+            self.telemetry_callback,
             1)
         # self.srv = self.create_service(HeightCommands, 'set_height', self.height_command_callback)
 
+        self.ci = CameraInfo()
+        filename = (
+            Path(get_package_share_directory("visualization"))
+            / "config"
+            / "camera_info.yaml"
+        )
+        try:
+            with filename.open() as f:
+                calib = yaml.safe_load(f)
+                if calib is not None:
+                    # fill in CameraInfo fields
+                    self.ci.width = calib["image_width"]
+                    self.ci.height = calib["image_height"]
+                    self.ci.distortion_model = calib["distortion_model"]
+                    self.ci.d = calib["distortion_coefficients"]["data"]
+                    self.ci.k = calib["camera_matrix"]["data"]
+                    self.ci.r = calib["rectification_matrix"]["data"]
+                    self.ci.p = calib["projection_matrix"]["data"]
+        except OSError:  # OK if file did not exist
+            pass
+
+        self.ci.header.frame_id = "tello_main"
+        self.ci.header.stamp = self.get_clock().now().to_msg()
+
         self.sim_fps = 10  # freq of computing translation
         self.timer = self.create_timer(1/self.sim_fps, self.comp_translation)  # TODO: Do it properly!
+        self.camtimer = self.create_timer(5, self.caminfo_pub)  # TODO: Do it properly!
 
         self.lock = threading.Lock()
         self.bridge = CvBridge()
-        self.telemetry: list[float] = [0.0]*4
+        self.tof4: list[float] = [0.0] * 4
         self.tof8x8: list[float] = []
-        self.velocity: list[float] = [0.0]*4
-        self.position: list[float] = [0.0]*4
+        self.velocity: np.ndarray = np.array([0, 0, 0])
+        self.position: np.ndarray = np.array([0, 0, 0])
+        self.rotation: R = R.from_euler("xyz", [0, 0, 0], degrees=True)
         self.dividor = 1e2
         self.frame = None
 
-    def listener_callback(self, msg):
+    def ToF_callback(self, msg):
         with self.lock:
-            self.telemetry[0] = msg.front
-            self.telemetry[1] = msg.left
-            self.telemetry[2] = msg.back
-            self.telemetry[3] = msg.right
+            self.tof4[0] = msg.front
+            self.tof4[1] = msg.left
+            self.tof4[2] = msg.back
+            self.tof4[3] = msg.right
             # ---------------------------
             self.tof8x8 = msg.matrix
             # ---------------------------
-            self.position[3] = -msg.degree
+            # self.rotation[2] = -msg.degree
 
         self.handle_pose()
         self.handle_scan()
         self.handle_tof8x8()
-        self.get_logger().info(f'Publishing Pose & LaserScan to Rviz [{self.position[3]}, {self.telemetry[0]}]')
+        self.get_logger().info(f'Publishing Pose & LaserScan to Rviz [{self.rotation.as_euler("xyz")[2]}, {self.tof4[0]}]')
 
     def video_callback(self, msg):
         try:
             # Convert ROS Image message to OpenCV image
             frame_msg = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-            ci = CameraInfo()
-            filename = Path(get_package_share_directory("visualization")) / "config" / "camera_info.yaml"
-            try:
-                with filename.open() as f:
-                    calib = yaml.safe_load(f)
-                    if calib is not None:
-                        # fill in CameraInfo fields
-                        ci.width = calib['image_width']
-                        ci.height = calib['image_height']
-                        ci.distortion_model = calib['distortion_model']
-                        ci.d = calib['distortion_coefficients']['data']
-                        ci.k = calib['camera_matrix']['data']
-                        ci.r = calib['rectification_matrix']['data']
-                        ci.p = calib['projection_matrix']['data']
-            except OSError:  # OK if file did not exist
-                pass
-
-            ci.header.frame_id = "tello_main"
-            ci.header.stamp = self.get_clock().now().to_msg()
-
-            self.camerainfo_publisher.publish(ci)
-
         except CvBridgeError as e:
             self.get_logger().error(f"Error converting ROS Image to OpenCV Image: {e}")
 
-    def rc_command_callback(self, msg):
+    def caminfo_pub(self):
+
+            self.camerainfo_publisher.publish(self.ci)
+
+    def telemetry_callback(self, msg):
         with self.lock:
-            self.velocity[0] = msg.left_right_velocity
-            self.velocity[1] = msg.forward_backward_velocity
-            self.velocity[2] = msg.up_down_velocity
-            self.velocity[3] = msg.yaw_velocity
+            self.velocity[0] = msg.vgx
+            self.velocity[1] = msg.vgy
+            self.velocity[2] = msg.vgz
+
+            self.position[2] = msg.h
+
+            self.rotation = R.from_euler("xyz", [msg.pitch, msg.roll, msg.yaw], degrees=True)
 
     def handle_pose(self):
         tfs = TransformStamped()
@@ -133,7 +144,7 @@ class RvizSetup(Node):
         tfs.transform.translation.y = self.position[1] / self.dividor
         tfs.transform.translation.z = self.position[2] / self.dividor
 
-        r = R.from_euler('xyz', [0, 0, self.position[3]], degrees=True).as_quat()
+        r = self.rotation.as_quat()
 
         tfs.transform.rotation.x = r[0]
         tfs.transform.rotation.y = r[1]
@@ -153,7 +164,7 @@ class RvizSetup(Node):
         laser_scan.scan_time = 0.01
         laser_scan.range_min = 0.1
         laser_scan.range_max = 12.0
-        laser_scan.ranges = [t / self.dividor for t in self.telemetry]
+        laser_scan.ranges = [t / self.dividor for t in self.tof4]
         laser_scan.intensities = [1.0, 0.5, 0.1, 0.5]
 
         self.laserscan_publisher.publish(laser_scan)
@@ -190,13 +201,14 @@ class RvizSetup(Node):
 
     def comp_translation(self):
 
-        theta = math.radians(self.position[3])
+        # theta = self.rotation.as_euler("xyz")[2]
 
-        dx, dy = math.cos(-theta), math.sin(-theta)
+        # dx, dy = math.cos(-theta), math.sin(-theta)
 
-        self.position[0] += (+ self.velocity[1] * dx - self.velocity[0] * dy) * 4 / self.sim_fps
-        self.position[1] += (- self.velocity[1] * dy - self.velocity[0] * dx) * 4 / self.sim_fps
-        self.position[2] = 300.0
+        self.position = self.position + self.rotation.apply(self.velocity*4/self.sim_fps)
+        # self.position[0] += (+ self.velocity[1] * dx - self.velocity[0] * dy) * 4 / self.sim_fps
+        # self.position[1] += (- self.velocity[1] * dy - self.velocity[0] * dx) * 4 / self.sim_fps
+        # self.position[2] = 300.0
         # self.get_logger().warning(f'POSITION: {self.position}')
 
         self.handle_pose()
