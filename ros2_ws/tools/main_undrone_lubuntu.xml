@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="undrone" exec="webcam" name="webcam"/>
+  <node pkg="undrone" exec="drone" name="drone"/>
+  <node pkg="my_drone" exec="visualization" name="visualization"/>
+  <node pkg="ai" exec="person_detection" name="AI"/>
+  <node pkg="visualization" exec="rviz_setup" name="rviz_setup"/>
+  <node pkg="rviz2" exec="rviz2" name="rviz2" args="-d $(find-pkg-share visualization)/config/tello.rviz"/>
+  <node pkg="undrone" exec="keys" name="keys" launch-prefix="qterminal -e"/>
+</launch>
