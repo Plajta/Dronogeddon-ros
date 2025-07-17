@@ -4,7 +4,7 @@ Very cool and efficitent autonomous security drone using Dji Tello.
 
 ### Used libraries
 
-All written in the `requirements.txt` file. Apart from that, we use the **ROS** in our codebase, which you have to configure separately.
+All written in the `requirements.txt` file. Apart from that, we use the **ROS Jazzy** with **Python 3.10** in our codebase.
 
 ### Setup/Installation
 
@@ -14,27 +14,19 @@ All written in the `requirements.txt` file. Apart from that, we use the **ROS** 
 cd ros2_ws
 ```
 
-2. **Source the setup script**
+2. **Source the global ROS setup script**
 
 ``` shell
-source install/setup.bash
+source /opt/ros/jazzy/setup.bash
 ```
 
-3. **Create virtual environment (optional)** <br>
+3. **Setup Python 3.10 version** <br>
 
-*Either using venv*
-
-``` shell
-python3 -m venv dronogeddon_env --system-site-packages --symlinks
-source dronogeddon_env/bin/activate
-```
-
-*Or using Pyenv virtualenv plugin*
+*You can use PyEnv for that, if you already have python 3.10 installed globaly, then this step is entirely optional*
 
 ``` shell
 pyenv install 3.10
-pyenv virtualenv 3.10 dronogeddon_env --system-site-packages --symlinks
-pyenv local dronogeddon_env
+pyenv local 3.10
 ```
 
 4. **Setup rosdep and install dependencies**
@@ -62,11 +54,15 @@ colcon build
 colcon build --packages-select <name-of-pkg>
 ```
 
+7. **Source the local ROS setup script**
+
 ```
-python3 -m pip install -r requirements.txt
+source install/setup.bash
 ```
 
-7. **Run nodes**
+### Usage
+
+##### Running nodes
 
 *Manually*
 
@@ -81,7 +77,7 @@ ros2 run my_drone video
 ros2 launch <path-to-xml>
 ```
 
-### Configuration files
+### Launch files
 
 | Config file        | Description                                    |
 | ------------------ | ---------------------------------------------- |
