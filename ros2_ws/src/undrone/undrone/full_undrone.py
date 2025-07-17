@@ -20,7 +20,7 @@ from threading import Lock
 import threading
 from time import sleep
 
-from drone_interfaces.msg import ToFDistances, RCcommands
+from drone_interfaces.msg import ToFDistances, RCcommands, TelemetryData
 from drone_interfaces.srv import HeightCommands
 from std_msgs.msg import String 
 from sensor_msgs.msg import Image, LaserScan, PointCloud2, PointField
@@ -36,10 +36,15 @@ class DroneComm(Node):
     def __init__(self):
         super().__init__('drone_comm')
 
-        #publisher for telemetry data to "telemetry" topic
-        self.telemetry_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
+        #publisher for telemetry data to "ToF_distances" topic
+        self.telemetry_publisher = self.create_publisher(TelemetryData, 'telemetry', 10)
         telemetry_timer_period = 1/10  #period of publishing
         self.timer = self.create_timer(telemetry_timer_period, self.telemetry_callback)
+
+        #publisher for ToF data to "ToF_distances" topic
+        self.tof_publisher = self.create_publisher(ToFDistances, 'ToF_distances', 10)
+        tof_timer_period = 1/10  #period of publishing
+        self.timer = self.create_timer(tof_timer_period, self.tof_callback)
         
         #publisher for streaming video to "video_frames" topic
         self.video_publisher = self.create_publisher(Image, 'video_frames', 10)
@@ -64,8 +69,17 @@ class DroneComm(Node):
         
         #self.video_publisher_thread.start()
 
-
     def telemetry_callback(self):
+        msg = TelemetryData()
+
+        msg.yaw = int(-self.tello.angle)
+        msg.vgx = int(self.tello.forward_speed)
+        msg.vgy = int(-self.tello.side_speed)
+        msg.h = int(200)
+        self.telemetry_publisher.publish(msg)
+        self.get_logger().info('Publishing Telemetry')
+
+    def tof_callback(self):
         msg = ToFDistances()
         with self.tello_lock:
             data = self.mesurments()
@@ -76,8 +90,8 @@ class DroneComm(Node):
         msg.back = data[3]
         msg.degree = data[5]
         msg.matrix = data[6]
-        self.telemetry_publisher.publish(msg)
-        self.get_logger().info('Publishing telemetry')
+        self.tof_publisher.publish(msg)
+        self.get_logger().info('Publishing ToF')
         
     def publish_video_frame(self,interval):
         self.frame_read = self.tello.get_frame_read()
