@@ -26,6 +26,9 @@ setup(
     entry_points={
         'console_scripts': [
             'compass_mapping = localization.compass_mapping:main',
+            'slam_mapper = localization.slam_mapper:main',
+            'autonomous_explorer = localization.autonomous_explorer:main',
+            'mission_coordinator = localization.mission_coordinator:main',
         ],
     },
 )

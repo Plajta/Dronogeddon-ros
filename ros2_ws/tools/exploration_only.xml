@@ -1,0 +1,14 @@
+<launch>
+  <!-- Core drone functionality -->
+  <node pkg="my_drone" exec="drone_driver" name="drone_driver"/>
+  
+  <!-- SLAM and autonomous exploration -->
+  <node pkg="localization" exec="slam_mapper" name="slam_mapper"/>
+  <node pkg="localization" exec="autonomous_explorer" name="autonomous_explorer"/>
+  <node pkg="localization" exec="compass_mapping" name="compass_mapping"/>
+  
+  <!-- Visualization -->
+  <node pkg="my_drone" exec="visualization" name="visualization"/>
+  <node pkg="visualization" exec="rviz_setup" name="rviz_setup"/>
+  <node pkg="rviz2" exec="rviz2" name="rviz2" args="-d $(find-pkg-share visualization)/config/tello.rviz"/>
+</launch>

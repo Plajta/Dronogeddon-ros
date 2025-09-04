@@ -2,11 +2,13 @@
 opencv-python
 pytest # TODO: in case we would like to switch to test-driven devel: "colcon test"
 djitellopy
+numpy
 
 # ROS packages
 empy
 catkin_pkg
 lark
+tf-transformations
 
 # Pytorch
 --extra-index-url https://download.pytorch.org/whl/cu118

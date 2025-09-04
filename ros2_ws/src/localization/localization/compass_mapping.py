@@ -4,20 +4,20 @@ from sensor_msgs.msg import Imu
 import math
 import tf_transformations
 
-from drone_interfaces.msg import Telemetry
+from drone_interfaces.msg import TelemetryData
 
 class CompassMapping(Node):
 
     def __init__(self):
         super().__init__("compass_mapping")
 
-        self.subscriber = self.create_subscription(Telemetry, 'telemtetry', self.telemetry_callback, 1)
+        self.subscriber = self.create_subscription(TelemetryData, 'telemetry', self.telemetry_callback, 1)
         self.publisher = self.create_publisher(Imu, 'compass/data', 10)
 
     def telemetry_callback(self, telemetry):
         imu_msg = Imu()
 
-        yaw_angle = math.radians(telemetry.degree)
+        yaw_angle = math.radians(telemetry.yaw)
         quaternion = tf_transformations.quaternion_from_euler(0, 0, yaw_angle)
         imu_msg.orientation.x = quaternion[0]
         imu_msg.orientation.y = quaternion[1]

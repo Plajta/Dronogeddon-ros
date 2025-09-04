@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'person_detection = ai.person_detection:main'
+            'person_detection = ai.person_detection:main',
+            'motion_command_interface = ai.motion_command_interface:main'
         ],
     },
 )
