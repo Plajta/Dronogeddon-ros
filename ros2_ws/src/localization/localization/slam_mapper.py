@@ -13,7 +13,8 @@ from drone_interfaces.msg import TelemetryData, ToFDistances
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Header
-import tf_transformations
+# Import centralized tf_transformations fix
+from .tf_transformations_fix import quaternion_from_euler, euler_from_quaternion
 
 class SLAMMapper(Node):
     def __init__(self):

@@ -33,8 +33,8 @@ class GazeboToFBridge(Node):
         
         # Store latest distances
         self.distances = {
-            'forward': 4.0,
-            'backward': 4.0,
+            'front': 4.0,
+            'back': 4.0,
             'left': 4.0,
             'right': 4.0
         }
@@ -46,11 +46,11 @@ class GazeboToFBridge(Node):
     
     def forward_callback(self, msg):
         if len(msg.ranges) > 0 and not np.isinf(msg.ranges[0]):
-            self.distances['forward'] = min(msg.ranges[0], 4.0)
+            self.distances['front'] = min(msg.ranges[0], 4.0)
     
     def backward_callback(self, msg):
         if len(msg.ranges) > 0 and not np.isinf(msg.ranges[0]):
-            self.distances['backward'] = min(msg.ranges[0], 4.0)
+            self.distances['back'] = min(msg.ranges[0], 4.0)
     
     def left_callback(self, msg):
         if len(msg.ranges) > 0 and not np.isinf(msg.ranges[0]):
@@ -85,8 +85,8 @@ class GazeboToFBridge(Node):
         tof_msg = ToFDistances()
         
         # Convert to mm (like real Tello sensors)
-        tof_msg.forward = int(self.distances['forward'] * 1000)
-        tof_msg.backward = int(self.distances['backward'] * 1000)
+        tof_msg.front = int(self.distances['front'] * 1000)
+        tof_msg.back = int(self.distances['back'] * 1000)
         tof_msg.left = int(self.distances['left'] * 1000)
         tof_msg.right = int(self.distances['right'] * 1000)
         

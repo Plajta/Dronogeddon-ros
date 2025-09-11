@@ -16,7 +16,8 @@ from drone_interfaces.srv import HeightCommands
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
-import tf_transformations
+# Import centralized tf_transformations fix
+from .tf_transformations_fix import quaternion_from_euler
 
 class DroneState(Enum):
     LANDED = 0
@@ -327,8 +328,8 @@ class DroneSimulator(Node):
         
         if self.simulation_map is None:
             # Default readings if no map
-            distances.forward = 400  # 4.0m in cm
-            distances.backward = 400
+            distances.front = 400  # 4.0m in cm
+            distances.back = 400
             distances.left = 400
             distances.right = 400
             distances.matrix_data = [400] * 64  # 8x8 matrix
@@ -342,9 +343,9 @@ class DroneSimulator(Node):
             distance = self.apply_sensor_limitations(distance)
             sensor_distances.append(min(int(distance * 100), 400))  # Convert to cm, max 400cm
         
-        distances.forward = sensor_distances[0]
+        distances.front = sensor_distances[0]
         distances.left = sensor_distances[1]
-        distances.backward = sensor_distances[2]
+        distances.back = sensor_distances[2]
         distances.right = sensor_distances[3]
         
         # Simulate matrix sensor (forward-facing 8x8 grid)
@@ -455,7 +456,7 @@ class DroneSimulator(Node):
         pose_msg.pose.position.z = self.position_z
         
         # Convert yaw to quaternion
-        quat = tf_transformations.quaternion_from_euler(0, 0, self.yaw)
+        quat = quaternion_from_euler(0, 0, self.yaw)
         pose_msg.pose.orientation.x = quat[0]
         pose_msg.pose.orientation.y = quat[1]
         pose_msg.pose.orientation.z = quat[2]

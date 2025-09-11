@@ -5,11 +5,11 @@ from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA, String, Int32
-from drone_interfaces.msg import ToFSensorData
 from .room_config import get_room_config
 import math
 from drone_interfaces.msg import TelemetryData, ToFDistances
-import tf_transformations
+# Import centralized tf_transformations fix
+from .tf_transformations_fix import quaternion_from_euler
 
 class RVizVisualizer(Node):
     def __init__(self):
@@ -242,7 +242,7 @@ class RVizVisualizer(Node):
         marker.pose.position.z = self.drone_position[2]
         
         # Orientation
-        quaternion = tf_transformations.quaternion_from_euler(0, 0, self.drone_yaw)
+        quaternion = quaternion_from_euler(0, 0, self.drone_yaw)
         marker.pose.orientation.x = quaternion[0]
         marker.pose.orientation.y = quaternion[1]
         marker.pose.orientation.z = quaternion[2]
@@ -333,7 +333,7 @@ class RVizVisualizer(Node):
             
             # Point in sensor direction
             sensor_yaw = self.drone_yaw + angle_offset
-            quaternion = tf_transformations.quaternion_from_euler(0, 0, sensor_yaw)
+            quaternion = quaternion_from_euler(0, 0, sensor_yaw)
             marker.pose.orientation.x = quaternion[0]
             marker.pose.orientation.y = quaternion[1]
             marker.pose.orientation.z = quaternion[2]

@@ -110,7 +110,7 @@ class MapSaver(Node):
                     'timestamp': datetime.now().isoformat(),
                     'x': 0.0,  # Would need position estimation from telemetry
                     'y': 0.0,
-                    'z': msg.height / 100.0,  # Convert cm to meters
+                    'z': msg.h / 100.0,  # Convert cm to meters
                     'yaw': msg.yaw,
                     'source': 'telemetry'
                 }
