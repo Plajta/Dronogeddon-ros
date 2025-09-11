@@ -222,7 +222,7 @@ class RVizVisualizer(Node):
             
             marker_array.markers.append(text_marker)
         
-        self.room_markers_pub.publish(marker_array)
+        self.room_marker_pub.publish(marker_array)
 
     def publish_drone_marker(self):
         """Publish drone position marker"""

@@ -9,7 +9,6 @@
   <node pkg="localization" exec="rviz_visualizer" name="rviz_visualizer"/>
   <node pkg="localization" exec="map_saver" name="map_saver"/>
   
-  <!-- Visualization -->
-  <node pkg="visualization" exec="rviz_setup" name="rviz_setup"/>
-  <node pkg="rviz2" exec="rviz2" name="rviz2" args="-d $(find-pkg-share visualization)/config/tello.rviz"/>
+  <!-- RViz Visualization -->
+  <executable cmd="rviz2" args="-d $(find-pkg-share localization)/config/drone_visualization.rviz" name="rviz2"/>
 </launch>
