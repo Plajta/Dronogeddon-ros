@@ -1,0 +1,438 @@
+<?xml version="1.0"?>
+<robot name="tello_drone" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Base link -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.18 0.18 0.04"/>
+      </geometry>
+      <material name="tello_blue">
+        <color rgba="0.2 0.4 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.18 0.18 0.04"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.087"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0002"/>
+    </inertial>
+  </link>
+
+  <!-- Propellers -->
+  <link name="propeller_fl">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.005"/>
+      </geometry>
+      <material name="propeller_gray">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="propeller_fl_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="propeller_fl"/>
+    <origin xyz="0.065 0.065 0.025" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="propeller_fr">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.005"/>
+      </geometry>
+      <material name="propeller_gray">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="propeller_fr_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="propeller_fr"/>
+    <origin xyz="0.065 -0.065 0.025" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="propeller_bl">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.005"/>
+      </geometry>
+      <material name="propeller_gray">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="propeller_bl_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="propeller_bl"/>
+    <origin xyz="-0.065 0.065 0.025" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="propeller_br">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.005"/>
+      </geometry>
+      <material name="propeller_gray">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="propeller_br_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="propeller_br"/>
+    <origin xyz="-0.065 -0.065 0.025" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- ToF Sensors -->
+  <!-- Forward ToF -->
+  <link name="tof_forward_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.005"/>
+      </geometry>
+      <material name="sensor_red">
+        <color rgba="0.8 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="tof_forward_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_forward_link"/>
+    <origin xyz="0.09 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Backward ToF -->
+  <link name="tof_backward_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.005"/>
+      </geometry>
+      <material name="sensor_red">
+        <color rgba="0.8 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="tof_backward_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_backward_link"/>
+    <origin xyz="-0.09 0 0" rpy="0 0 3.14159"/>
+  </joint>
+
+  <!-- Left ToF -->
+  <link name="tof_left_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.005"/>
+      </geometry>
+      <material name="sensor_red">
+        <color rgba="0.8 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="tof_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_left_link"/>
+    <origin xyz="0 0.09 0" rpy="0 0 1.5708"/>
+  </joint>
+
+  <!-- Right ToF -->
+  <link name="tof_right_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.005"/>
+      </geometry>
+      <material name="sensor_red">
+        <color rgba="0.8 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="tof_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tof_right_link"/>
+    <origin xyz="0 -0.09 0" rpy="0 0 -1.5708"/>
+  </joint>
+
+  <!-- Matrix ToF Sensor (VL53L5CX) -->
+  <link name="matrix_tof_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.008"/>
+      </geometry>
+      <material name="sensor_green">
+        <color rgba="0.2 0.8 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="matrix_tof_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="matrix_tof_link"/>
+    <origin xyz="0.08 0 -0.01" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Camera -->
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.01"/>
+      </geometry>
+      <material name="camera_black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.07 0 -0.015" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Gazebo plugins -->
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/tello_drone</robotNamespace>
+    </plugin>
+  </gazebo>
+
+  <!-- ToF Sensor plugins -->
+  <gazebo reference="tof_forward_link">
+    <sensor type="ray" name="tof_forward">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <topicName>/tof_forward</topicName>
+        <frameName>tof_forward_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="tof_backward_link">
+    <sensor type="ray" name="tof_backward">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <topicName>/tof_backward</topicName>
+        <frameName>tof_backward_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="tof_left_link">
+    <sensor type="ray" name="tof_left">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <topicName>/tof_left</topicName>
+        <frameName>tof_left_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="tof_right_link">
+    <sensor type="ray" name="tof_right">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <topicName>/tof_right</topicName>
+        <frameName>tof_right_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- Matrix ToF sensor (8x8 grid) -->
+  <gazebo reference="matrix_tof_link">
+    <sensor type="ray" name="matrix_tof">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>8</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.5236</min_angle>
+            <max_angle>0.5236</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>8</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.5236</min_angle>
+            <max_angle>0.5236</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <topicName>/matrix_tof</topicName>
+        <frameName>matrix_tof_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- Camera sensor -->
+  <gazebo reference="camera_link">
+    <sensor type="camera" name="camera">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>tello_drone/camera</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- Drone physics -->
+  <gazebo reference="base_link">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+</robot>

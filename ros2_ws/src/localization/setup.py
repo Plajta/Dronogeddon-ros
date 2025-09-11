@@ -15,6 +15,8 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*.*')),
         (os.path.join('share', package_name, 'config'), glob('config/*.*')),
         (os.path.join('share', package_name, 'rviz'), glob('rviz/*.*')),
+        (os.path.join('share', package_name, 'worlds'), glob('worlds/*.*')),
+        (os.path.join('share', package_name, 'urdf'), glob('urdf/*.*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -32,6 +34,8 @@ setup(
             'rviz_visualizer = localization.rviz_visualizer:main',
             'map_saver = localization.map_saver:main',
             'drone_simulator = localization.drone_simulator:main',
+            'gazebo_tof_bridge = localization.gazebo_tof_bridge:main',
+            'gazebo_drone_controller = localization.gazebo_drone_controller:main',
         ],
     },
 )

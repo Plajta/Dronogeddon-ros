@@ -1,0 +1,652 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="apartment">
+    
+    <!-- Physics -->
+    <physics name="default_physics" default="0" type="ode">
+      <gravity>0 0 -9.8066</gravity>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>10</iters>
+          <sor>1.3</sor>
+        </solver>
+        <constraints>
+          <cfm>0.0</cfm>
+          <erp>0.2</erp>
+          <contact_max_correcting_vel>100.0</contact_max_correcting_vel>
+          <contact_surface_layer>0.001</contact_surface_layer>
+        </constraints>
+      </ode>
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>250</real_time_update_rate>
+    </physics>
+
+    <!-- Light -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Ground Plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Apartment Layout based on rooms.yaml -->
+    
+    <!-- Living Room (0, 0, 6, 4) -->
+    <model name="living_room_walls">
+      <static>true</static>
+      <pose>3 2 1.25 0 0 0</pose>
+      
+      <!-- North wall -->
+      <link name="north_wall">
+        <pose>0 2 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>6 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>6 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- South wall -->
+      <link name="south_wall">
+        <pose>0 -2 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>6 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>6 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- West wall -->
+      <link name="west_wall">
+        <pose>-3 0 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 4 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 4 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- East wall (partial - door to hallway) -->
+      <link name="east_wall_1">
+        <pose>3 -1 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 2 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 2 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="east_wall_2">
+        <pose>3 1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Kitchen (7, 0, 3, 4) -->
+    <model name="kitchen_walls">
+      <static>true</static>
+      <pose>8.5 2 1.25 0 0 0</pose>
+      
+      <!-- North wall -->
+      <link name="north_wall">
+        <pose>0 2 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>3 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>3 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.7 1</ambient>
+            <diffuse>0.9 0.9 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- South wall -->
+      <link name="south_wall">
+        <pose>0 -2 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>3 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>3 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.7 1</ambient>
+            <diffuse>0.9 0.9 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- East wall -->
+      <link name="east_wall">
+        <pose>1.5 0 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 4 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 4 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.7 1</ambient>
+            <diffuse>0.9 0.9 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- West wall (partial - door to hallway) -->
+      <link name="west_wall_1">
+        <pose>-1.5 -1 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 2 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 2 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.7 1</ambient>
+            <diffuse>0.9 0.9 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="west_wall_2">
+        <pose>-1.5 1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.7 1</ambient>
+            <diffuse>0.9 0.9 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Bedroom (0, 5, 4, 3) -->
+    <model name="bedroom_walls">
+      <static>true</static>
+      <pose>2 6.5 1.25 0 0 0</pose>
+      
+      <!-- North wall -->
+      <link name="north_wall">
+        <pose>0 1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>4 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>4 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.7 0.8 0.9 1</ambient>
+            <diffuse>0.7 0.8 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- South wall (partial - door to hallway) -->
+      <link name="south_wall_1">
+        <pose>-1 -1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>2 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>2 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.7 0.8 0.9 1</ambient>
+            <diffuse>0.7 0.8 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="south_wall_2">
+        <pose>1.5 -1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>1 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>1 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.7 0.8 0.9 1</ambient>
+            <diffuse>0.7 0.8 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- West wall -->
+      <link name="west_wall">
+        <pose>-2 0 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.7 0.8 0.9 1</ambient>
+            <diffuse>0.7 0.8 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- East wall -->
+      <link name="east_wall">
+        <pose>2 0 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.7 0.8 0.9 1</ambient>
+            <diffuse>0.7 0.8 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Bathroom (5, 5, 2, 3) -->
+    <model name="bathroom_walls">
+      <static>true</static>
+      <pose>6 6.5 1.25 0 0 0</pose>
+      
+      <!-- All walls -->
+      <link name="north_wall">
+        <pose>0 1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>2 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>2 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.95 1.0 1</ambient>
+            <diffuse>0.9 0.95 1.0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="south_wall">
+        <pose>0 -1.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>2 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>2 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.95 1.0 1</ambient>
+            <diffuse>0.9 0.95 1.0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="west_wall">
+        <pose>-1 0 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.95 1.0 1</ambient>
+            <diffuse>0.9 0.95 1.0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="east_wall">
+        <pose>1 0 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 3 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.95 1.0 1</ambient>
+            <diffuse>0.9 0.95 1.0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Hallway (3, 4, 4, 1) -->
+    <model name="hallway_walls">
+      <static>true</static>
+      <pose>5 4.5 1.25 0 0 0</pose>
+      
+      <!-- North wall -->
+      <link name="north_wall">
+        <pose>0 0.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>4 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>4 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      
+      <!-- South wall -->
+      <link name="south_wall">
+        <pose>0 -0.5 0 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>4 0.1 2.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>4 0.1 2.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Furniture -->
+    
+    <!-- Living room sofa -->
+    <model name="sofa">
+      <static>true</static>
+      <pose>1 1 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>2 0.8 0.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>2 0.8 0.8</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.8 1</ambient>
+            <diffuse>0.3 0.3 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Kitchen counter -->
+    <model name="kitchen_counter">
+      <static>true</static>
+      <pose>8.5 3 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>2.5 0.6 0.9</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>2.5 0.6 0.9</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.4 0.2 1</ambient>
+            <diffuse>0.6 0.4 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Bedroom bed -->
+    <model name="bed">
+      <static>true</static>
+      <pose>1 7 0.3 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>2 1.5 0.6</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>2 1.5 0.6</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.9 1</ambient>
+            <diffuse>0.8 0.8 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Bathroom sink -->
+    <model name="sink">
+      <static>true</static>
+      <pose>6.5 6.5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.6 0.4 0.8</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.6 0.4 0.8</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

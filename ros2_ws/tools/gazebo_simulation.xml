@@ -1,0 +1,35 @@
+<launch>
+  <!-- Gazebo World -->
+  <include file="$(find-pkg-share gazebo_ros)/launch/gazebo.launch.py">
+    <arg name="world" value="$(find-pkg-share localization)/worlds/apartment.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- Spawn Tello Drone -->
+  <node pkg="gazebo_ros" exec="spawn_entity.py" name="spawn_tello_drone"
+        args="-entity tello_drone -file $(find-pkg-share localization)/urdf/tello_drone.urdf -x 1.0 -y 1.0 -z 0.1"/>
+
+  <!-- Gazebo-ROS Bridge for ToF sensors -->
+  <node pkg="localization" exec="gazebo_tof_bridge" name="gazebo_tof_bridge"/>
+  
+  <!-- Gazebo Drone Controller -->
+  <node pkg="localization" exec="gazebo_drone_controller" name="gazebo_drone_controller"/>
+
+  <!-- SLAM and autonomous exploration -->
+  <node pkg="localization" exec="slam_mapper" name="slam_mapper"/>
+  <node pkg="localization" exec="autonomous_explorer" name="autonomous_explorer"/>
+  <node pkg="localization" exec="compass_mapping" name="compass_mapping"/>
+  <node pkg="localization" exec="rviz_visualizer" name="rviz_visualizer"/>
+  <node pkg="localization" exec="map_saver" name="map_saver"/>
+
+  <!-- Visualization -->
+  <node pkg="visualization" exec="rviz_setup" name="rviz_setup"/>
+  <node pkg="rviz2" exec="rviz2" name="rviz2" args="-d $(find-pkg-share visualization)/config/tello.rviz"/>
+
+  <!-- Set use_sim_time parameter for all nodes -->
+  <param name="use_sim_time" value="true"/>
+</launch>
