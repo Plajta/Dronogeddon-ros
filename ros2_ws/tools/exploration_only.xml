@@ -6,6 +6,8 @@
   <node pkg="localization" exec="slam_mapper" name="slam_mapper"/>
   <node pkg="localization" exec="autonomous_explorer" name="autonomous_explorer"/>
   <node pkg="localization" exec="compass_mapping" name="compass_mapping"/>
+  <node pkg="localization" exec="rviz_visualizer" name="rviz_visualizer"/>
+  <node pkg="localization" exec="map_saver" name="map_saver"/>
   
   <!-- Visualization -->
   <node pkg="my_drone" exec="visualization" name="visualization"/>

@@ -65,9 +65,10 @@ class AutonomousExplorer(Node):
         # Publishers
         self.rc_pub = self.create_publisher(RCcommands, 'rc_commands', 10)
         self.status_pub = self.create_publisher(String, 'exploration_status', 10)
+        self.mission_status_pub = self.create_publisher(String, 'mission_status', 10)
         
         # Service clients
-        self.height_client = self.create_client(HeightCommands, 'set_height')
+        self.height_client = self.create_client(HeightCommands, 'height_commands')
         
         # Main control timer
         self.control_timer = self.create_timer(0.1, self.control_loop)  # 10Hz control loop
@@ -91,17 +92,16 @@ class AutonomousExplorer(Node):
 
     def start_exploration(self):
         """Start autonomous exploration"""
-        if self.state == ExplorationState.IDLE:
-            self.state = ExplorationState.TAKEOFF
-            self.get_logger().info('Starting autonomous exploration...')
-            self.publish_status('Starting exploration - Taking off')
-            
-            # Send takeoff command
-            if self.height_client.wait_for_service(timeout_sec=5.0):
-                request = HeightCommands.Request()
-                request.command = 1  # takeoff
-                future = self.height_client.call_async(request)
-                
+        self.state = ExplorationState.TAKEOFF
+        self.publish_status('Starting exploration - Taking off')
+        self.publish_mission_status('[EXPLORATION] Starting autonomous exploration')
+        
+        # Send takeoff command
+        if self.height_client.wait_for_service(timeout_sec=5.0):
+            request = HeightCommands.Request()
+            request.command = 1  # takeoff
+            future = self.height_client.call_async(request)
+
     def stop_exploration(self):
         """Stop exploration and land"""
         self.state = ExplorationState.LANDING
@@ -143,6 +143,7 @@ class AutonomousExplorer(Node):
                 self.state = ExplorationState.COMPLETED
                 self.get_logger().info('Exploration completed')
                 self.publish_status('Exploration completed')
+                self.publish_mission_status('[IDLE] Exploration completed - drone landed')
 
     def explore_current_area(self):
         """Explore current area by rotating and scanning"""
@@ -333,6 +334,12 @@ class AutonomousExplorer(Node):
         msg = String()
         msg.data = status
         self.status_pub.publish(msg)
+    
+    def publish_mission_status(self, status):
+        """Publish mission status for map saver"""
+        msg = String()
+        msg.data = status
+        self.mission_status_pub.publish(msg)
 
     def normalize_angle(self, angle):
         """Normalize angle to [-pi, pi]"""

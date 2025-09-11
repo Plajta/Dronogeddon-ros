@@ -14,6 +14,7 @@ from drone_interfaces.srv import HeightCommands
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Point
 from std_msgs.msg import String
+from .room_config import get_room_config
 
 class MissionState(Enum):
     IDLE = 0
@@ -28,9 +29,12 @@ class MissionCoordinator(Node):
     def __init__(self):
         super().__init__('mission_coordinator')
         
+        # Load room configuration
+        self.room_config = get_room_config()
+        
         # Mission parameters
         self.home_position = (0.0, 0.0)  # home base coordinates
-        self.investigation_height = 1.5  # meters
+        self.investigation_height = self.room_config.get_investigation_height()
         self.navigation_speed = 40  # RC command speed
         self.investigation_duration = 15.0  # seconds to investigate an area
         self.position_tolerance = 1.0  # meters - how close to target is "arrived"

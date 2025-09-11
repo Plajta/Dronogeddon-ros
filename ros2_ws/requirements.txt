@@ -1,6 +1,12 @@
 # Other packages
 opencv-python
-pytest # TODO: in case we would like to switch to test-driven devel: "colcon test"
+numpy
+matplotlib
+scipy
+scikit-learn
+pillow
+requests
+PyYAML # switch to test-driven devel: "colcon test"
 djitellopy
 numpy
 

@@ -8,22 +8,17 @@ from datetime import datetime
 
 from std_msgs.msg import String
 from geometry_msgs.msg import Point
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../localization'))
+from localization.room_config import get_room_config
 
 class MotionCommandInterface(Node):
     def __init__(self):
         super().__init__('motion_command_interface')
         
-        # Room locations mapping (coordinates in meters)
-        self.room_locations = {
-            '1': {'name': 'living_room', 'x': 0.0, 'y': 0.0},
-            '2': {'name': 'kitchen', 'x': 5.0, 'y': 0.0},
-            '3': {'name': 'bedroom', 'x': 0.0, 'y': 5.0},
-            '4': {'name': 'bathroom', 'x': 5.0, 'y': 5.0},
-            '5': {'name': 'hallway', 'x': 2.5, 'y': 2.5},
-            '6': {'name': 'office', 'x': -3.0, 'y': 3.0},
-            '7': {'name': 'balcony', 'x': 7.0, 'y': -2.0},
-            '8': {'name': 'storage', 'x': -2.0, 'y': -3.0}
-        }
+        # Load room configuration from external file
+        self.room_config = get_room_config()
+        self.room_locations = self._load_room_locations()
         
         # Publishers
         self.motion_pub = self.create_publisher(String, 'motion_detected', 10)
@@ -35,6 +30,22 @@ class MotionCommandInterface(Node):
         
         self.get_logger().info('Motion Command Interface initialized')
         self.print_help()
+    
+    def _load_room_locations(self):
+        """Load room locations from configuration file"""
+        room_locations = {}
+        config_rooms = self.room_config.get_all_rooms()
+        
+        for room_name, room_info in config_rooms.items():
+            room_locations[room_info['id']] = {
+                'name': room_name,
+                'display_name': room_info['name'],
+                'x': float(room_info['center'][0]),
+                'y': float(room_info['center'][1])
+            }
+        
+        self.get_logger().info(f'Loaded {len(room_locations)} rooms from configuration')
+        return room_locations
 
     def process_motion_command(self, room_id):
         """Process motion detection command for specific room"""
@@ -46,6 +57,7 @@ class MotionCommandInterface(Node):
         
         room_info = self.room_locations[room_id]
         room_name = room_info['name']
+        display_name = room_info['display_name']
         
         # Log command
         timestamp = datetime.now().isoformat()
@@ -59,18 +71,18 @@ class MotionCommandInterface(Node):
         
         # Publish motion detection event
         motion_msg = String()
-        motion_msg.data = f'External motion alert: Room {room_id} ({room_name}) at {timestamp}'
+        motion_msg.data = f'External motion alert: Room {room_id} ({display_name}) at {timestamp}'
         self.motion_pub.publish(motion_msg)
         
         # Publish investigation target
         target_msg = Point()
         target_msg.x = float(room_info['x'])
         target_msg.y = float(room_info['y'])
-        target_msg.z = 1.5  # investigation height in meters
+        target_msg.z = float(self.room_config.get_investigation_height())
         self.investigation_pub.publish(target_msg)
         
         # Publish status
-        status_msg = f'Motion alert sent for Room {room_id} ({room_name}) at coordinates ({room_info["x"]}, {room_info["y"]})'
+        status_msg = f'Motion alert sent for Room {room_id} ({display_name}) at coordinates ({room_info["x"]}, {room_info["y"]})'
         self.publish_status(status_msg)
         
         self.get_logger().info(f'Motion command processed: {status_msg}')
@@ -105,7 +117,7 @@ Usage: ros2 run ai motion_command_interface <room_id>
 Available rooms:
 """
         for room_id, info in self.room_locations.items():
-            help_text += f"  {room_id}: {info['name']} at ({info['x']}, {info['y']})\n"
+            help_text += f"  {room_id}: {info['display_name']} at ({info['x']}, {info['y']})\n"
         
         help_text += """
 Examples:
@@ -122,7 +134,7 @@ Or use the command line interface:
         """List available rooms"""
         print("\nAvailable rooms:")
         for room_id, info in self.room_locations.items():
-            print(f"  Room {room_id}: {info['name']} at coordinates ({info['x']}, {info['y']})")
+            print(f"  Room {room_id}: {info['display_name']} at coordinates ({info['x']}, {info['y']})")
         print()
 
     def show_history(self):

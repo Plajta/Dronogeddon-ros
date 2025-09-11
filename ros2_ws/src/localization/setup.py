@@ -25,10 +25,13 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'compass_mapping = localization.compass_mapping:main',
             'slam_mapper = localization.slam_mapper:main',
-            'autonomous_explorer = localization.autonomous_explorer:main',
             'mission_coordinator = localization.mission_coordinator:main',
+            'autonomous_explorer = localization.autonomous_explorer:main',
+            'compass_mapping = localization.compass_mapping:main',
+            'rviz_visualizer = localization.rviz_visualizer:main',
+            'map_saver = localization.map_saver:main',
+            'drone_simulator = localization.drone_simulator:main',
         ],
     },
 )
