@@ -131,10 +131,10 @@ class SLAMMapper(Node):
         if 0 <= end_x < self.map_width and 0 <= end_y < self.map_height:
             self.occupancy_map[end_y, end_x] = 100
 
-    def update_map_with_matrix(self, robot_map_x, robot_map_y, matrix_data):
+    def update_map_with_matrix(self, robot_map_x, robot_map_y, matrix):
         """Update map using 8x8 matrix sensor data"""
         
-        if len(matrix_data) != 64:
+        if len(matrix) != 64:
             return
         
         # Matrix sensor parameters
@@ -144,7 +144,7 @@ class SLAMMapper(Node):
         for row in range(8):
             for col in range(8):
                 idx = row * 8 + col
-                distance = matrix_data[idx] / 1000.0  # convert mm to meters
+                distance = matrix[idx] / 1000.0  # convert mm to meters
                 
                 if distance > 0 and distance < max_range:
                     # Calculate angle for this pixel

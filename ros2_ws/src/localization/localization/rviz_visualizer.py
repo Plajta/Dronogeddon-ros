@@ -7,6 +7,7 @@ from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA, String, Int32
 from .room_config import get_room_config
 import math
+from threading import Lock
 from drone_interfaces.msg import TelemetryData, ToFDistances
 # Import centralized tf_transformations fix
 from .tf_transformations_fix import quaternion_from_euler
