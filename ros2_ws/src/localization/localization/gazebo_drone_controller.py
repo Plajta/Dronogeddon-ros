@@ -69,16 +69,16 @@ class GazeboDroneController(Node):
         
         # Convert RC values (-100 to 100) to velocities
         # Forward/backward (pitch)
-        forward_vel = (msg.pitch / 100.0) * self.max_speed
+        forward_vel = (msg.forward_backward_velocity / 100.0) * self.max_speed
         
         # Left/right (roll) 
-        right_vel = (msg.roll / 100.0) * self.max_speed
+        right_vel = (msg.left_right_velocity / 100.0) * self.max_speed
         
         # Up/down (throttle)
-        up_vel = (msg.throttle / 100.0) * self.max_speed
+        up_vel = (msg.up_down_velocity / 100.0) * self.max_speed
         
         # Rotation (yaw)
-        yaw_rate = (msg.yaw / 100.0) * self.max_yaw_rate
+        yaw_rate = (msg.yaw_velocity / 100.0) * self.max_yaw_rate
         
         # Transform to world coordinates based on current yaw
         cos_yaw = math.cos(self.yaw)

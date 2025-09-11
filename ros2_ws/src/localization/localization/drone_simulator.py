@@ -243,13 +243,13 @@ class DroneSimulator(Node):
         # RC commands: forward/backward, left/right, up/down, yaw
         
         # Forward/backward (pitch)
-        forward_cmd = (self.rc_commands.pitch - 50) / 50.0  # -1 to 1
+        forward_cmd = self.rc_commands.forward_backward_velocity / 100.0  # -1 to 1
         # Left/right (roll)
-        right_cmd = (self.rc_commands.roll - 50) / 50.0     # -1 to 1
+        right_cmd = self.rc_commands.left_right_velocity / 100.0     # -1 to 1
         # Up/down (throttle)
-        up_cmd = (self.rc_commands.throttle - 50) / 50.0    # -1 to 1
+        up_cmd = self.rc_commands.up_down_velocity / 100.0    # -1 to 1
         # Yaw rotation
-        yaw_cmd = (self.rc_commands.yaw_velocity - 50) / 50.0  # -1 to 1
+        yaw_cmd = self.rc_commands.yaw_velocity / 100.0  # -1 to 1
         
         # Apply deadzone
         deadzone = 0.1

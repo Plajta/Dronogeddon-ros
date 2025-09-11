@@ -5,6 +5,7 @@ from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA, String, Int32
+from nav_msgs.msg import OccupancyGrid
 from .room_config import get_room_config
 import math
 from threading import Lock
