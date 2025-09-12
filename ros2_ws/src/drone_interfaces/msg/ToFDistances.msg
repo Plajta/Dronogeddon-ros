@@ -1,6 +1,6 @@
-int64 front
-int64 left
-int64 right
-int64 back
-int64 degree
-uint16[64] matrix
+int64 front        # [cm] - vzdálenost vpřed (VL53L1X sensor / 10)
+int64 left         # [cm] - vzdálenost vlevo (VL53L1X sensor / 10)
+int64 right        # [cm] - vzdálenost vpravo (VL53L1X sensor / 10)
+int64 back         # [cm] - vzdálenost vzad (VL53L1X sensor / 10)
+int64 degree       # [°] - úhel natočení senzoru (0° až 360°)
+uint16[64] matrix  # [mm] - 8x8 matice vzdáleností (VL53L5CX sensor)

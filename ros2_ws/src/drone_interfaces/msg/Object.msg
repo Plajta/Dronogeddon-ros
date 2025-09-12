@@ -1,5 +1,5 @@
-int32 cls
-int32 x0
-int32 y0
-int32 x1
-int32 y1
+int32 cls    # [-] - třída detekovaného objektu (AI model ID)
+int32 x0     # [px] - levý horní roh bounding boxu (X souřadnice)
+int32 y0     # [px] - levý horní roh bounding boxu (Y souřadnice)
+int32 x1     # [px] - pravý dolní roh bounding boxu (X souřadnice)
+int32 y1     # [px] - pravý dolní roh bounding boxu (Y souřadnice)

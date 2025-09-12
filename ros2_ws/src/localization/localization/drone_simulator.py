@@ -332,7 +332,7 @@ class DroneSimulator(Node):
             distances.back = 400
             distances.left = 400
             distances.right = 400
-            distances.matrix = [400] * 64  # 8x8 matrix
+            distances.matrix = [4000] * 64  # 8x8 matrix in mm
             return distances
         
         # Simulate 4 directional ToF sensors
@@ -361,7 +361,7 @@ class DroneSimulator(Node):
                 sensor_angle = self.yaw + angle_h
                 distance = self.raycast(self.position_x, self.position_y, sensor_angle)
                 distance = self.apply_sensor_limitations(distance)
-                matrix_data.append(min(int(distance * 100), 400))
+                matrix_data.append(min(int(distance * 1000), 4000))  # Convert to mm like real sensor
         
         distances.matrix = matrix_data
         return distances

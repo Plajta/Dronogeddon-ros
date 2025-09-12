@@ -1,1 +1,1 @@
-Object[] entries
+Object[] entries    # [-] - seznam detekovaných objektů z AI kamery
