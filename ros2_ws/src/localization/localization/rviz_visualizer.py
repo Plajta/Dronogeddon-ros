@@ -49,6 +49,7 @@ class RVizVisualizer(Node):
         self.room_marker_pub = self.create_publisher(MarkerArray, 'room_markers', 10)
         self.drone_marker_pub = self.create_publisher(Marker, 'drone_marker', 10)
         self.trajectory_marker_pub = self.create_publisher(Marker, 'drone_trajectory', 10)
+        self.trajectory_pub = self.create_publisher(Marker, 'drone_trajectory', 10)
         self.tof_marker_pub = self.create_publisher(MarkerArray, 'tof_sensors', 10)
         self.sensor_ranges_pub = self.create_publisher(MarkerArray, 'sensor_ranges', 10)
         self.investigation_marker_pub = self.create_publisher(Marker, 'investigation_target', 10)

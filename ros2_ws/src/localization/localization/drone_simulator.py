@@ -149,39 +149,88 @@ class DroneSimulator(Node):
             self.create_default_environment()
     
     def create_default_environment(self):
-        """Create a default simulation environment with rooms"""
-        # Create a simple apartment layout
+        """Create a default simulation environment matching rooms.yaml layout"""
+        # Create realistic apartment layout matching rooms.yaml
         self.simulation_map = np.zeros((self.map_height, self.map_width), dtype=np.int8)
         
         # Add outer walls
-        self.simulation_map[0:5, :] = 100      # Top wall
-        self.simulation_map[-5:, :] = 100     # Bottom wall
-        self.simulation_map[:, 0:5] = 100     # Left wall
-        self.simulation_map[:, -5:] = 100     # Right wall
+        wall_thickness = 5
+        self.simulation_map[0:wall_thickness, :] = 100      # Top wall
+        self.simulation_map[-wall_thickness:, :] = 100     # Bottom wall
+        self.simulation_map[:, 0:wall_thickness] = 100     # Left wall
+        self.simulation_map[:, -wall_thickness:] = 100     # Right wall
         
-        # Add internal walls to create rooms
-        # Vertical wall (dividing left/right)
-        self.simulation_map[50:350, 195:205] = 100
+        # Convert room positions to map coordinates
+        # Living room: center [0.0, 0.0], size [5.0, 4.0]
+        living_x, living_y = self.world_to_map(0.0, 0.0)
+        living_w, living_h = int(5.0 / self.map_resolution), int(4.0 / self.map_resolution)
         
-        # Horizontal wall (dividing top/bottom)
-        self.simulation_map[195:205, 50:350] = 100
+        # Kitchen: center [6.0, 0.0], size [3.0, 3.0] 
+        kitchen_x, kitchen_y = self.world_to_map(6.0, 0.0)
+        kitchen_w, kitchen_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        
+        # Bedroom: center [0.0, -5.0], size [4.0, 3.0]
+        bedroom_x, bedroom_y = self.world_to_map(0.0, -5.0)
+        bedroom_w, bedroom_h = int(4.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        
+        # Bathroom: center [4.0, -5.0], size [2.0, 2.0]
+        bathroom_x, bathroom_y = self.world_to_map(4.0, -5.0)
+        bathroom_w, bathroom_h = int(2.0 / self.map_resolution), int(2.0 / self.map_resolution)
+        
+        # Office: center [-5.0, 0.0], size [3.0, 3.0]
+        office_x, office_y = self.world_to_map(-5.0, 0.0)
+        office_w, office_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        
+        # Add walls between rooms
+        # Wall between living room and kitchen
+        wall_x = self.world_to_map(3.5, 0.0)[0]
+        self.simulation_map[living_y-living_h//2:living_y+living_h//2, wall_x:wall_x+3] = 100
+        
+        # Wall separating upper and lower areas
+        wall_y = self.world_to_map(0.0, -2.5)[1]
+        self.simulation_map[wall_y:wall_y+3, office_x+office_w//2:kitchen_x+kitchen_w//2] = 100
+        
+        # Wall between bedroom and bathroom
+        wall_x = self.world_to_map(2.0, -5.0)[0]
+        self.simulation_map[bedroom_y-bedroom_h//2:bedroom_y+bedroom_h//2, wall_x:wall_x+3] = 100
         
         # Add doors (gaps in walls)
-        self.simulation_map[180:220, 195:205] = 0  # Door in vertical wall
-        self.simulation_map[195:205, 180:220] = 0  # Door in horizontal wall
+        door_size = 15  # pixels
+        # Door between living room and kitchen
+        door_y = living_y
+        self.simulation_map[door_y-door_size//2:door_y+door_size//2, wall_x:wall_x+3] = 0
         
-        # Add some furniture/obstacles
+        # Door to hallway
+        hallway_door_y = self.world_to_map(0.0, -2.5)[1]
+        self.simulation_map[hallway_door_y:hallway_door_y+3, living_x-door_size//2:living_x+door_size//2] = 0
+        
+        # Add furniture matching room types
         # Living room furniture
-        self.simulation_map[80:120, 80:120] = 100   # Sofa
-        self.simulation_map[300:320, 300:340] = 100 # Table
+        sofa_x, sofa_y = self.world_to_map(-1.5, -0.5)
+        self.simulation_map[sofa_y-15:sofa_y+15, sofa_x-30:sofa_x+30] = 100
+        
+        table_x, table_y = self.world_to_map(1.0, 0.5)
+        self.simulation_map[table_y-8:table_y+8, table_x-8:table_x+8] = 100
         
         # Kitchen furniture
-        self.simulation_map[80:100, 250:350] = 100  # Kitchen counter
+        counter_x, counter_y = self.world_to_map(6.0, -1.0)
+        self.simulation_map[counter_y-6:counter_y+6, counter_x-25:counter_x+25] = 100
         
         # Bedroom furniture
-        self.simulation_map[250:300, 80:130] = 100  # Bed
+        bed_x, bed_y = self.world_to_map(0.0, -5.5)
+        self.simulation_map[bed_y-14:bed_y+14, bed_x-20:bed_x+20] = 100
         
-        self.get_logger().info('Created default apartment environment')
+        # Office furniture
+        desk_x, desk_y = self.world_to_map(-5.0, -0.5)
+        self.simulation_map[desk_y-5:desk_y+5, desk_x-15:desk_x+15] = 100
+        
+        self.get_logger().info('Created realistic apartment environment matching rooms.yaml')
+    
+    def world_to_map(self, world_x, world_y):
+        """Convert world coordinates to map pixel coordinates"""
+        map_x = int((world_x - self.map_origin_x) / self.map_resolution)
+        map_y = int((world_y - self.map_origin_y) / self.map_resolution)
+        return map_x, map_y
     
     def rc_callback(self, msg):
         """Handle RC commands from exploration system"""
