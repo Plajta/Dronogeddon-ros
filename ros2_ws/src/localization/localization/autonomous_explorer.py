@@ -133,11 +133,17 @@ class AutonomousExplorer(Node):
             
         elif self.state == ExplorationState.TAKEOFF:
             # Wait for takeoff to complete
-            if self.current_telemetry and self.current_telemetry.h > 100:  # 1m height
+            if self.current_telemetry and self.current_telemetry.h > 50:  # 0.5m height (reduced threshold)
                 self.state = ExplorationState.EXPLORING
                 self.scan_start_time = time.time()
                 self.get_logger().info('Takeoff complete, starting exploration')
                 self.publish_status('Takeoff complete - Beginning exploration')
+            else:
+                # Debug: log current height
+                if self.current_telemetry:
+                    self.get_logger().info(f'Waiting for takeoff... Current height: {self.current_telemetry.h}cm')
+                else:
+                    self.get_logger().info('Waiting for takeoff... No telemetry data')
                 
         elif self.state == ExplorationState.EXPLORING:
             self.explore_current_area()
@@ -173,10 +179,12 @@ class AutonomousExplorer(Node):
         # Rotate slowly to scan the area
         if current_time - self.scan_start_time < self.scan_duration:
             # Rotate slowly for 360-degree scan
-            self.send_rc_command(0, 0, 0, 20)  # slow rotation
+            self.send_rc_command(0, 0, 0, 30)  # increased rotation speed
+            self.get_logger().info(f'Scanning area... {current_time - self.scan_start_time:.1f}s / {self.scan_duration}s')
         else:
             # Scanning complete, find next frontier
             self.send_rc_command(0, 0, 0, 0)  # stop rotation
+            self.get_logger().info('Scan complete, looking for frontiers')
             if self.frontiers:
                 self.state = ExplorationState.MOVING_TO_FRONTIER
                 self.get_logger().info(f'Moving to frontier {self.current_frontier_idx + 1}/{len(self.frontiers)}')
@@ -336,6 +344,10 @@ class AutonomousExplorer(Node):
         msg.forward_backward_velocity = int(forward_back)
         msg.up_down_velocity = int(up_down)
         msg.yaw_velocity = int(yaw)
+        
+        # Debug: log commands being sent
+        if any([left_right, forward_back, up_down, yaw]):
+            self.get_logger().info(f'Sending RC command: LR={left_right}, FB={forward_back}, UD={up_down}, YAW={yaw}')
         
         self.rc_pub.publish(msg)
         self.last_command_time = time.time()
