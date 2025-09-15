@@ -221,8 +221,13 @@ class AutonomousExplorer(Node):
         target_x, target_y = self.frontiers[self.current_frontier_idx]
         
         # Get current position from telemetry or estimate
-        current_x = getattr(self, 'current_x', 0.0)
-        current_y = getattr(self, 'current_y', 0.0)
+        # For now, use simple position tracking based on movement
+        if not hasattr(self, 'current_x'):
+            self.current_x = 0.0
+            self.current_y = 0.0
+        
+        current_x = self.current_x
+        current_y = self.current_y
         
         # Calculate relative position to target
         dx = target_x - current_x
@@ -242,13 +247,16 @@ class AutonomousExplorer(Node):
         angle_diff = self.normalize_angle(target_angle - current_yaw)
         
         # Movement logic - actually move forward
-        forward_speed = 30 if abs(angle_diff) < 0.3 else 0  # move forward when aligned
         yaw_speed = 0
+        forward_speed = 0
         
         if abs(angle_diff) > 0.2:  # need to rotate first
             yaw_speed = 30 if angle_diff > 0 else -30
+            self.get_logger().info(f'Rotating to target: angle_diff={angle_diff:.2f}, yaw_speed={yaw_speed}')
         else:
-            forward_speed = min(self.exploration_speed, int(distance * 20))
+            # Move forward when aligned
+            forward_speed = min(30, max(10, int(distance * 10)))  # Speed based on distance
+            self.get_logger().info(f'Moving forward: distance={distance:.2f}m, speed={forward_speed}')
             
         self.send_rc_command(0, forward_speed, 0, yaw_speed)
 

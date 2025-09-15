@@ -476,32 +476,32 @@ class DroneSimulator(Node):
     def raycast(self, start_x, start_y, angle):
         """Cast a ray and return distance to first obstacle"""
         if self.simulation_map is None:
-            return self.tof_range
+            return 400.0  # Return max range if no map
         
-        step_size = self.map_resolution / 2  # Half pixel steps for accuracy
-        max_steps = int(self.tof_range / step_size)
+        step_size = 0.01  # 1cm steps for better accuracy
+        max_steps = int(400.0 / step_size)  # 400cm max range
         
         cos_angle = math.cos(angle)
         sin_angle = math.sin(angle)
         
-        for step in range(max_steps):
-            # Current ray position
-            ray_x = start_x + step * step_size * cos_angle
-            ray_y = start_y + step * step_size * sin_angle
+        for step in range(1, max_steps):  # Start from step 1 to avoid starting position
+            # Current ray position in world coordinates (meters)
+            ray_x = start_x + (step * step_size / 100.0) * cos_angle  # Convert cm to meters
+            ray_y = start_y + (step * step_size / 100.0) * sin_angle
             
             # Convert to map coordinates
             map_x = int((ray_x - self.map_origin_x) / self.map_resolution)
             map_y = int((ray_y - self.map_origin_y) / self.map_resolution)
             
-            # Check bounds
+            # Check bounds - if outside map, hit boundary
             if map_x < 0 or map_x >= self.map_width or map_y < 0 or map_y >= self.map_height:
-                return step * step_size
+                return step * step_size  # Return distance in cm
             
-            # Check if hit obstacle
+            # Check if hit obstacle (wall)
             if self.simulation_map[map_y, map_x] == 100:
-                return step * step_size
+                return step * step_size  # Return distance in cm
         
-        return self.tof_range
+        return 400.0  # Max range if no obstacle found
     
     def apply_sensor_limitations(self, true_distance):
         """Apply realistic sensor limitations and noise"""
