@@ -9,6 +9,7 @@ import cv2
 import os
 from threading import Lock
 import time
+import random
 from enum import Enum
 
 from drone_interfaces.msg import TelemetryData, ToFDistances, RCcommands
