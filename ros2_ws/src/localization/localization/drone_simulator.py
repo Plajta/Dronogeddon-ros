@@ -466,11 +466,11 @@ class DroneSimulator(Node):
                 matrix_data.append(max(10, min(400, distance)))
         
         distances = ToFDistances()
-        distances.front = tof_distances[0]
-        distances.left = tof_distances[1]
-        distances.back = tof_distances[2]
-        distances.right = tof_distances[3]
-        distances.matrix = matrix_data
+        distances.front = int(tof_distances[0])
+        distances.left = int(tof_distances[1])
+        distances.back = int(tof_distances[2])
+        distances.right = int(tof_distances[3])
+        distances.matrix = [int(x) for x in matrix_data]
         return distances
     
     def raycast(self, start_x, start_y, angle):
