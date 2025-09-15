@@ -53,7 +53,7 @@ class DroneSimulator(Node):
         self.max_speed = 2.0        # m/s
         self.max_yaw_rate = 1.0     # rad/s
         self.takeoff_height = 1.5   # meters
-        self.takeoff_speed = 0.5    # m/s
+        self.takeoff_speed = 2.0    # m/s (increased from 0.5)
         self.landing_speed = 0.3    # m/s
         
         # ToF sensor configuration (4 sensors + matrix sensor)
