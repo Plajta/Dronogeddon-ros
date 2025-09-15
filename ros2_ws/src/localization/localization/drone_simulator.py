@@ -421,46 +421,54 @@ class DroneSimulator(Node):
         return True
     
     def simulate_tof_sensors(self):
-        """Simulate ToF sensor readings"""
-        distances = ToFDistances()
+        """Simulate ToF sensors with realistic readings that respect room boundaries"""
         
-        if self.simulation_map is None:
-            # Default readings if no map
-            distances.front = 400  # 4.0m in cm
-            distances.back = 400
-            distances.left = 400
-            distances.right = 400
-            distances.matrix = [400] * 64  # 8x8 matrix in cm
-            return distances
+        # Directional sensors (forward, backward, left, right)
+        directions = [
+            (math.cos(self.yaw), math.sin(self.yaw)),           # forward
+            (math.cos(self.yaw + math.pi), math.sin(self.yaw + math.pi)),  # backward  
+            (math.cos(self.yaw - math.pi/2), math.sin(self.yaw - math.pi/2)),  # left
+            (math.cos(self.yaw + math.pi/2), math.sin(self.yaw + math.pi/2))   # right
+        ]
         
-        # Simulate 4 directional ToF sensors
-        sensor_distances = []
-        for angle_offset in self.tof_angles:
-            sensor_angle = self.yaw + angle_offset
-            distance = self.raycast(self.position_x, self.position_y, sensor_angle)
-            distance = self.apply_sensor_limitations(distance)
-            sensor_distances.append(min(int(distance * 100), 400))  # Convert to cm, max 400cm
+        tof_distances = []
+        for dx, dy in directions:
+            distance = self.raycast(self.x, self.y, dx, dy, max_distance=400.0)
+            # Add some noise and measurement error
+            if random.random() < self.measurement_error_prob:
+                distance = random.uniform(10, 400)  # random error
+            else:
+                distance += random.gauss(0, 2)  # small noise
+            
+            tof_distances.append(max(10, min(400, distance)))  # clamp to sensor range
         
-        distances.front = sensor_distances[0]
-        distances.left = sensor_distances[1]
-        distances.back = sensor_distances[2]
-        distances.right = sensor_distances[3]
-        
-        # Simulate matrix sensor (forward-facing 8x8 grid)
+        # Matrix sensor (8x8 grid) - forward facing
         matrix_data = []
-        matrix_half_fov = self.matrix_sensor_fov / 2
-        for row in range(self.matrix_sensor_resolution):
-            for col in range(self.matrix_sensor_resolution):
+        base_angle = self.yaw - math.pi/6  # 60-degree FOV
+        for row in range(8):
+            for col in range(8):
                 # Calculate angle for this matrix element
-                angle_v = (row / (self.matrix_sensor_resolution - 1) - 0.5) * matrix_half_fov
-                angle_h = (col / (self.matrix_sensor_resolution - 1) - 0.5) * matrix_half_fov
+                angle_offset = (col - 3.5) * (math.pi/6) / 8  # spread across FOV
+                angle = base_angle + angle_offset
                 
-                # For simplicity, just use horizontal angle (2D simulation)
-                sensor_angle = self.yaw + angle_h
-                distance = self.raycast(self.position_x, self.position_y, sensor_angle)
-                distance = self.apply_sensor_limitations(distance)
-                matrix_data.append(min(int(distance * 100), 400))  # Convert to cm like real sensor (packCharsUsing95 does /10)
+                dx = math.cos(angle)
+                dy = math.sin(angle)
+                
+                distance = self.raycast(self.x, self.y, dx, dy, max_distance=400.0)
+                
+                # Add noise
+                if random.random() < self.measurement_error_prob:
+                    distance = random.uniform(10, 400)
+                else:
+                    distance += random.gauss(0, 2)
+                
+                matrix_data.append(max(10, min(400, distance)))
         
+        distances = ToFDistances()
+        distances.front = tof_distances[0]
+        distances.left = tof_distances[1]
+        distances.back = tof_distances[2]
+        distances.right = tof_distances[3]
         distances.matrix = matrix_data
         return distances
     

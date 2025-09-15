@@ -134,16 +134,20 @@ class AutonomousExplorer(Node):
         elif self.state == ExplorationState.TAKEOFF:
             # Wait for takeoff to complete
             if self.current_telemetry and self.current_telemetry.h > 50:  # 0.5m height (reduced threshold)
-                self.state = ExplorationState.EXPLORING
-                self.scan_start_time = time.time()
-                self.get_logger().info('Takeoff complete, starting exploration')
-                self.publish_status('Takeoff complete - Beginning exploration')
+                if not hasattr(self, 'takeoff_completed'):
+                    self.takeoff_completed = True
+                    self.state = ExplorationState.EXPLORING
+                    self.scan_start_time = time.time()
+                    self.get_logger().info('Takeoff complete, starting exploration')
+                    self.publish_status('Takeoff complete - Beginning exploration')
             else:
-                # Debug: log current height
-                if self.current_telemetry:
-                    self.get_logger().info(f'Waiting for takeoff... Current height: {self.current_telemetry.h}cm')
-                else:
-                    self.get_logger().info('Waiting for takeoff... No telemetry data')
+                # Debug: log current height (less frequently)
+                if not hasattr(self, 'last_height_log') or time.time() - self.last_height_log > 2.0:
+                    self.last_height_log = time.time()
+                    if self.current_telemetry:
+                        self.get_logger().info(f'Waiting for takeoff... Current height: {self.current_telemetry.h}cm')
+                    else:
+                        self.get_logger().info('Waiting for takeoff... No telemetry data')
                 
         elif self.state == ExplorationState.EXPLORING:
             self.explore_current_area()
@@ -185,12 +189,16 @@ class AutonomousExplorer(Node):
             # Scanning complete, find next frontier
             self.send_rc_command(0, 0, 0, 0)  # stop rotation
             self.get_logger().info('Scan complete, looking for frontiers')
-            if self.frontiers:
+            self.find_frontiers()  # Update frontier list
+            if self.frontiers and self.current_frontier_idx < len(self.frontiers):
                 self.state = ExplorationState.MOVING_TO_FRONTIER
-                self.get_logger().info(f'Moving to frontier {self.current_frontier_idx + 1}/{len(self.frontiers)}')
+                target_x, target_y = self.frontiers[self.current_frontier_idx]
+                self.get_logger().info(f'Moving to frontier {self.current_frontier_idx + 1}/{len(self.frontiers)} at ({target_x:.1f}, {target_y:.1f})')
             else:
-                # No more frontiers, exploration complete
-                self.stop_exploration()
+                # No more frontiers, continue exploring or complete
+                self.current_frontier_idx = 0
+                self.scan_start_time = time.time()
+                self.get_logger().info('No frontiers found, continuing exploration')
 
     def move_to_frontier(self):
         """Move towards the current frontier target"""
@@ -212,13 +220,16 @@ class AutonomousExplorer(Node):
             
         target_x, target_y = self.frontiers[self.current_frontier_idx]
         
-        # Simple navigation towards target
-        # Calculate relative position (simplified, assumes we know robot position)
-        dx = target_x  # relative to current position
-        dy = target_y
+        # Get current position from telemetry or estimate
+        current_x = getattr(self, 'current_x', 0.0)
+        current_y = getattr(self, 'current_y', 0.0)
+        
+        # Calculate relative position to target
+        dx = target_x - current_x
+        dy = target_y - current_y
         distance = math.sqrt(dx*dx + dy*dy)
         
-        if distance < 1.0:  # reached frontier
+        if distance < 0.5:  # reached frontier
             self.current_frontier_idx += 1
             self.state = ExplorationState.EXPLORING
             self.scan_start_time = time.time()
@@ -230,8 +241,8 @@ class AutonomousExplorer(Node):
         current_yaw = math.radians(self.current_telemetry.yaw)
         angle_diff = self.normalize_angle(target_angle - current_yaw)
         
-        # Movement logic
-        forward_speed = 0
+        # Movement logic - actually move forward
+        forward_speed = 30 if abs(angle_diff) < 0.3 else 0  # move forward when aligned
         yaw_speed = 0
         
         if abs(angle_diff) > 0.2:  # need to rotate first
