@@ -160,71 +160,120 @@ class DroneSimulator(Node):
         self.simulation_map[:, 0:wall_thickness] = 100     # Left wall
         self.simulation_map[:, -wall_thickness:] = 100     # Right wall
         
-        # Convert room positions to map coordinates
-        # Living room: center [0.0, 0.0], size [5.0, 4.0]
-        living_x, living_y = self.world_to_map(0.0, 0.0)
-        living_w, living_h = int(5.0 / self.map_resolution), int(4.0 / self.map_resolution)
+        # Create realistic apartment layout with proper walls and rooms
+        # Based on updated rooms.yaml without overlaps
         
-        # Kitchen: center [6.0, 0.0], size [3.0, 3.0] 
-        kitchen_x, kitchen_y = self.world_to_map(6.0, 0.0)
+        # Living room: center [0.0, 0.0], size [4.0, 3.0]
+        living_x, living_y = self.world_to_map(0.0, 0.0)
+        living_w, living_h = int(4.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        
+        # Kitchen: center [4.5, 0.0], size [3.0, 3.0] 
+        kitchen_x, kitchen_y = self.world_to_map(4.5, 0.0)
         kitchen_w, kitchen_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
         
-        # Bedroom: center [0.0, -5.0], size [4.0, 3.0]
-        bedroom_x, bedroom_y = self.world_to_map(0.0, -5.0)
-        bedroom_w, bedroom_h = int(4.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        # Bedroom: center [-3.0, -3.5], size [3.0, 3.0]
+        bedroom_x, bedroom_y = self.world_to_map(-3.0, -3.5)
+        bedroom_w, bedroom_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
         
-        # Bathroom: center [4.0, -5.0], size [2.0, 2.0]
-        bathroom_x, bathroom_y = self.world_to_map(4.0, -5.0)
+        # Bathroom: center [1.0, -3.5], size [2.0, 2.0]
+        bathroom_x, bathroom_y = self.world_to_map(1.0, -3.5)
         bathroom_w, bathroom_h = int(2.0 / self.map_resolution), int(2.0 / self.map_resolution)
         
-        # Office: center [-5.0, 0.0], size [3.0, 3.0]
-        office_x, office_y = self.world_to_map(-5.0, 0.0)
-        office_w, office_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        # Office: center [-3.0, 2.5], size [2.5, 2.0]
+        office_x, office_y = self.world_to_map(-3.0, 2.5)
+        office_w, office_h = int(2.5 / self.map_resolution), int(2.0 / self.map_resolution)
         
-        # Add walls between rooms
-        # Wall between living room and kitchen
-        wall_x = self.world_to_map(3.5, 0.0)[0]
-        self.simulation_map[living_y-living_h//2:living_y+living_h//2, wall_x:wall_x+3] = 100
+        # Storage: center [3.5, -3.5], size [1.5, 1.5]
+        storage_x, storage_y = self.world_to_map(3.5, -3.5)
+        storage_w, storage_h = int(1.5 / self.map_resolution), int(1.5 / self.map_resolution)
         
-        # Wall separating upper and lower areas
-        wall_y = self.world_to_map(0.0, -2.5)[1]
-        self.simulation_map[wall_y:wall_y+3, office_x+office_w//2:kitchen_x+kitchen_w//2] = 100
+        # Create room boundaries with walls
+        wall_thickness = 3
         
-        # Wall between bedroom and bathroom
-        wall_x = self.world_to_map(2.0, -5.0)[0]
-        self.simulation_map[bedroom_y-bedroom_h//2:bedroom_y+bedroom_h//2, wall_x:wall_x+3] = 100
+        # Living room walls
+        self.add_room_walls(living_x, living_y, living_w, living_h, wall_thickness)
         
-        # Add doors (gaps in walls)
-        door_size = 15  # pixels
-        # Door between living room and kitchen
-        door_y = living_y
-        self.simulation_map[door_y-door_size//2:door_y+door_size//2, wall_x:wall_x+3] = 0
+        # Kitchen walls
+        self.add_room_walls(kitchen_x, kitchen_y, kitchen_w, kitchen_h, wall_thickness)
         
-        # Door to hallway
-        hallway_door_y = self.world_to_map(0.0, -2.5)[1]
-        self.simulation_map[hallway_door_y:hallway_door_y+3, living_x-door_size//2:living_x+door_size//2] = 0
+        # Bedroom walls
+        self.add_room_walls(bedroom_x, bedroom_y, bedroom_w, bedroom_h, wall_thickness)
         
-        # Add furniture matching room types
+        # Bathroom walls
+        self.add_room_walls(bathroom_x, bathroom_y, bathroom_w, bathroom_h, wall_thickness)
+        
+        # Office walls
+        self.add_room_walls(office_x, office_y, office_w, office_h, wall_thickness)
+        
+        # Storage walls
+        self.add_room_walls(storage_x, storage_y, storage_w, storage_h, wall_thickness)
+        
+        # Hallway - horizontal corridor connecting rooms
+        hallway_x, hallway_y = self.world_to_map(0.0, -2.0)
+        hallway_w, hallway_h = int(6.0 / self.map_resolution), int(1.0 / self.map_resolution)
+        
+        # Clear hallway space (no walls in hallway itself)
+        x1 = max(0, hallway_x - hallway_w//2)
+        x2 = min(self.map_width, hallway_x + hallway_w//2)
+        y1 = max(0, hallway_y - hallway_h//2)
+        y2 = min(self.map_height, hallway_y + hallway_h//2)
+        self.simulation_map[y1:y2, x1:x2] = 0
+        
+        # Add doors connecting rooms to hallway
+        door_size = 12
+        
+        # Living room to hallway door
+        door_y = hallway_y + hallway_h//2
+        self.simulation_map[door_y:door_y+wall_thickness, living_x-door_size//2:living_x+door_size//2] = 0
+        
+        # Kitchen to living room door
+        door_x = living_x + living_w//2
+        self.simulation_map[living_y-door_size//2:living_y+door_size//2, door_x:door_x+wall_thickness] = 0
+        
+        # Bedroom to hallway door
+        door_y = hallway_y - hallway_h//2
+        self.simulation_map[door_y-wall_thickness:door_y, bedroom_x-door_size//2:bedroom_x+door_size//2] = 0
+        
+        # Bathroom to hallway door
+        door_y = hallway_y - hallway_h//2
+        self.simulation_map[door_y-wall_thickness:door_y, bathroom_x-door_size//2:bathroom_x+door_size//2] = 0
+        
+        # Add realistic furniture
         # Living room furniture
-        sofa_x, sofa_y = self.world_to_map(-1.5, -0.5)
-        self.simulation_map[sofa_y-15:sofa_y+15, sofa_x-30:sofa_x+30] = 100
+        sofa_x, sofa_y = self.world_to_map(-1.0, 0.0)
+        self.simulation_map[sofa_y-8:sofa_y+8, sofa_x-20:sofa_x+20] = 100
         
-        table_x, table_y = self.world_to_map(1.0, 0.5)
-        self.simulation_map[table_y-8:table_y+8, table_x-8:table_x+8] = 100
+        table_x, table_y = self.world_to_map(1.0, 0.0)
+        self.simulation_map[table_y-6:table_y+6, table_x-6:table_x+6] = 100
         
         # Kitchen furniture
-        counter_x, counter_y = self.world_to_map(6.0, -1.0)
-        self.simulation_map[counter_y-6:counter_y+6, counter_x-25:counter_x+25] = 100
+        counter_x, counter_y = self.world_to_map(4.5, -1.0)
+        self.simulation_map[counter_y-4:counter_y+4, counter_x-20:counter_x+20] = 100
         
         # Bedroom furniture
-        bed_x, bed_y = self.world_to_map(0.0, -5.5)
-        self.simulation_map[bed_y-14:bed_y+14, bed_x-20:bed_x+20] = 100
+        bed_x, bed_y = self.world_to_map(-3.0, -4.0)
+        self.simulation_map[bed_y-10:bed_y+10, bed_x-15:bed_x+15] = 100
         
         # Office furniture
-        desk_x, desk_y = self.world_to_map(-5.0, -0.5)
-        self.simulation_map[desk_y-5:desk_y+5, desk_x-15:desk_x+15] = 100
+        desk_x, desk_y = self.world_to_map(-3.0, 2.0)
+        self.simulation_map[desk_y-4:desk_y+4, desk_x-12:desk_x+12] = 100
         
         self.get_logger().info('Created realistic apartment environment matching rooms.yaml')
+    
+    def add_room_walls(self, center_x, center_y, width, height, wall_thickness):
+        """Add walls around a room"""
+        x1 = max(0, center_x - width//2)
+        x2 = min(self.map_width, center_x + width//2)
+        y1 = max(0, center_y - height//2)
+        y2 = min(self.map_height, center_y + height//2)
+        
+        # Top and bottom walls
+        self.simulation_map[y1-wall_thickness:y1, x1:x2] = 100
+        self.simulation_map[y2:y2+wall_thickness, x1:x2] = 100
+        
+        # Left and right walls
+        self.simulation_map[y1:y2, x1-wall_thickness:x1] = 100
+        self.simulation_map[y1:y2, x2:x2+wall_thickness] = 100
     
     def world_to_map(self, world_x, world_y):
         """Convert world coordinates to map pixel coordinates"""

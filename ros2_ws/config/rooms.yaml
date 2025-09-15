@@ -1,20 +1,20 @@
 # Room configuration for autonomous security drone
 # This file defines all rooms with their positions, sizes, and properties
-# Layout represents a realistic apartment with proper room connections
+# Layout represents a realistic apartment with proper room connections and no overlaps
 
 rooms:
   living_room:
     id: "1"
     name: "Living Room"
     center: [0.0, 0.0]
-    size: [5.0, 4.0]
+    size: [4.0, 3.0]
     color: [0.2, 0.8, 0.2, 0.3]  # RGBA - Green
     description: "Main living area"
     
   kitchen:
     id: "2"
     name: "Kitchen"
-    center: [6.0, 0.0]
+    center: [4.5, 0.0]
     size: [3.0, 3.0]
     color: [0.8, 0.2, 0.2, 0.3]  # RGBA - Red
     description: "Cooking and dining area"
@@ -22,15 +22,15 @@ rooms:
   bedroom:
     id: "3"
     name: "Bedroom"
-    center: [0.0, -5.0]
-    size: [4.0, 3.0]
+    center: [-3.0, -3.5]
+    size: [3.0, 3.0]
     color: [0.2, 0.2, 0.8, 0.3]  # RGBA - Blue
     description: "Main bedroom"
     
   bathroom:
     id: "4"
     name: "Bathroom"
-    center: [4.0, -5.0]
+    center: [1.0, -3.5]
     size: [2.0, 2.0]
     color: [0.8, 0.8, 0.2, 0.3]  # RGBA - Yellow
     description: "Main bathroom"
@@ -38,32 +38,32 @@ rooms:
   hallway:
     id: "5"
     name: "Hallway"
-    center: [3.0, -2.5]
-    size: [1.0, 4.0]
+    center: [0.0, -2.0]
+    size: [6.0, 1.0]
     color: [0.8, 0.2, 0.8, 0.3]  # RGBA - Magenta
     description: "Connecting corridor"
     
   office:
     id: "6"
     name: "Office"
-    center: [-5.0, 0.0]
-    size: [3.0, 3.0]
+    center: [-3.0, 2.5]
+    size: [2.5, 2.0]
     color: [0.2, 0.8, 0.8, 0.3]  # RGBA - Cyan
     description: "Home office/study"
     
   balcony:
     id: "7"
     name: "Balcony"
-    center: [8.5, 0.0]
-    size: [2.0, 2.5]
+    center: [6.5, 0.0]
+    size: [1.5, 2.0]
     color: [0.5, 0.8, 0.2, 0.3]  # RGBA - Light Green
     description: "Outdoor balcony area"
     
   storage:
     id: "8"
     name: "Storage"
-    center: [-2.5, -5.0]
-    size: [2.0, 2.0]
+    center: [3.5, -3.5]
+    size: [1.5, 1.5]
     color: [0.6, 0.4, 0.2, 0.3]  # RGBA - Brown
     description: "Storage room"
 
