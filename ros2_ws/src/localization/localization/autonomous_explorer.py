@@ -7,12 +7,12 @@ import math
 from enum import Enum
 from threading import Lock
 import time
-
-from drone_interfaces.msg import TelemetryData, ToFDistances, RCcommands
-from drone_interfaces.srv import HeightCommands
+from std_msgs.msg import String
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Point
-from std_msgs.msg import String
+from drone_interfaces.msg import TelemetryData, ToFDistances, RCcommands
+from drone_interfaces.srv import HeightCommands
+from std_srvs.srv import Empty
 
 class ExplorationState(Enum):
     IDLE = 0
@@ -70,6 +70,10 @@ class AutonomousExplorer(Node):
         # Service clients
         self.height_client = self.create_client(HeightCommands, 'height_commands')
         
+        # Services
+        self.start_exploration_service = self.create_service(
+            Empty, 'start_exploration', self.start_exploration_callback)
+        
         # Main control timer
         self.control_timer = self.create_timer(0.1, self.control_loop)  # 10Hz control loop
         
@@ -90,6 +94,13 @@ class AutonomousExplorer(Node):
         with self.data_lock:
             self.current_map = msg
 
+    def start_exploration_callback(self, request, response):
+        """Service callback to start autonomous exploration"""
+        self.start_exploration()
+        response.success = True
+        response.message = "Exploration started"
+        return response
+    
     def start_exploration(self):
         """Start autonomous exploration"""
         self.state = ExplorationState.TAKEOFF

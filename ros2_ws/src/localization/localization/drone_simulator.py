@@ -350,7 +350,7 @@ class DroneSimulator(Node):
         yaw_cmd = self.rc_commands.yaw_velocity / 100.0  # -1 to 1
         
         # Apply deadzone
-        deadzone = 0.1
+        deadzone = 0.05  # Reduced deadzone for better responsiveness
         if abs(forward_cmd) < deadzone: forward_cmd = 0.0
         if abs(right_cmd) < deadzone: right_cmd = 0.0
         if abs(up_cmd) < deadzone: up_cmd = 0.0
