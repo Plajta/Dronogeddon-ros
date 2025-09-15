@@ -53,7 +53,7 @@ class DroneSimulator(Node):
         self.max_speed = 2.0        # m/s
         self.max_yaw_rate = 1.0     # rad/s
         self.takeoff_height = 1.5   # meters
-        self.takeoff_speed = 0.5    # m/s
+        self.takeoff_speed = 2.0    # m/s (increased from 0.5)
         self.landing_speed = 0.3    # m/s
         
         # ToF sensor configuration (4 sensors + matrix sensor)
@@ -318,7 +318,10 @@ class DroneSimulator(Node):
             
             elif self.drone_state == DroneState.TAKING_OFF:
                 # Simple takeoff - just increase altitude
-                self.position_z += self.takeoff_speed * dt
+                height_increase = self.takeoff_speed * dt
+                self.position_z += height_increase
+                # Debug: log takeoff progress
+                self.get_logger().info(f'Takeoff step: +{height_increase:.4f}m (dt={dt}, speed={self.takeoff_speed}), total={self.position_z:.4f}m')
                 if self.position_z >= self.takeoff_height:
                     self.position_z = self.takeoff_height
                     self.drone_state = DroneState.FLYING
@@ -540,6 +543,9 @@ class DroneSimulator(Node):
         # Publish telemetry
         telemetry = TelemetryData()
         telemetry.h = int(self.position_z * 100)  # Height in cm
+        # Debug: log height during takeoff
+        if self.drone_state == DroneState.TAKING_OFF:
+            self.get_logger().info(f'Takeoff progress: {self.position_z:.2f}m ({telemetry.h}cm) / {self.takeoff_height}m')
         telemetry.yaw = int(math.degrees(self.yaw))  # Yaw in degrees
         telemetry.vgx = int(self.velocity_x * 100)  # Velocity in cm/s
         telemetry.vgy = int(self.velocity_y * 100)

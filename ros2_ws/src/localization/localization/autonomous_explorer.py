@@ -189,7 +189,7 @@ class AutonomousExplorer(Node):
             # Scanning complete, find next frontier
             self.send_rc_command(0, 0, 0, 0)  # stop rotation
             self.get_logger().info('Scan complete, looking for frontiers')
-            self.find_frontiers()  # Update frontier list
+            self.update_exploration_targets()  # Update frontier list
             if self.frontiers and self.current_frontier_idx < len(self.frontiers):
                 self.state = ExplorationState.MOVING_TO_FRONTIER
                 target_x, target_y = self.frontiers[self.current_frontier_idx]
