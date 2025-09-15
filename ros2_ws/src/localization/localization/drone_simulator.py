@@ -433,7 +433,7 @@ class DroneSimulator(Node):
         
         tof_distances = []
         for dx, dy in directions:
-            distance = self.raycast(self.x, self.y, dx, dy, max_distance=400.0)
+            distance = self.raycast(self.position_x, self.position_y, math.atan2(dy, dx))
             # Add some noise and measurement error
             if random.random() < self.measurement_error_prob:
                 distance = random.uniform(10, 400)  # random error
@@ -454,7 +454,7 @@ class DroneSimulator(Node):
                 dx = math.cos(angle)
                 dy = math.sin(angle)
                 
-                distance = self.raycast(self.x, self.y, dx, dy, max_distance=400.0)
+                distance = self.raycast(self.position_x, self.position_y, angle)
                 
                 # Add noise
                 if random.random() < self.measurement_error_prob:
