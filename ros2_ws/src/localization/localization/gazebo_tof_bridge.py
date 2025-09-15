@@ -65,12 +65,12 @@ class GazeboToFBridge(Node):
         if len(msg.ranges) >= 64:  # 8x8 = 64 points
             matrix_msg = MatrixToFData()
             
-            # Convert ranges to 8x8 matrix (in mm, like real sensor)
+            # Convert ranges to 8x8 matrix (in cm, like real sensor after packCharsUsing95)
             matrix_data = []
             for i in range(64):
                 distance_m = msg.ranges[i] if not np.isinf(msg.ranges[i]) else 4.0
-                distance_mm = int(min(distance_m * 1000, 4000))  # Convert to mm, max 4m
-                matrix_data.append(distance_mm)
+                distance_cm = int(min(distance_m * 100, 400))  # Convert to cm, max 4m
+                matrix_data.append(distance_cm)
             
             matrix_msg.distances = matrix_data
             matrix_msg.width = 8

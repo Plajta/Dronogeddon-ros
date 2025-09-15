@@ -144,7 +144,7 @@ class SLAMMapper(Node):
         for row in range(8):
             for col in range(8):
                 idx = row * 8 + col
-                distance = matrix[idx] / 1000.0  # convert mm to meters
+                distance = matrix[idx] / 100.0  # convert cm to meters
                 
                 if distance > 0 and distance < max_range:
                     # Calculate angle for this pixel
