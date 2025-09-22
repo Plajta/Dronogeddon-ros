@@ -101,6 +101,12 @@ class DroneSimulator(Node):
         
         self.get_logger().info('Drone Simulator initialized')
         self.get_logger().info(f'Environment: {self.map_width}x{self.map_height} pixels, resolution: {self.map_resolution}m/px')
+        self.get_logger().info(f'Drone starting position: ({self.position_x:.2f}, {self.position_y:.2f}, {self.position_z:.2f})')
+        
+        # Check if starting position is valid
+        if self.simulation_map is not None:
+            is_valid = self.is_position_valid(self.position_x, self.position_y)
+            self.get_logger().info(f'Starting position is valid: {is_valid}')
     
     def load_simulation_environment(self):
         """Load simulation environment from rooms.yaml configuration"""
@@ -110,7 +116,7 @@ class DroneSimulator(Node):
     
     def load_rooms_config(self):
         """Load rooms configuration from rooms.yaml"""
-        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'rooms.yaml')
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..', 'config', 'rooms.yaml')
         try:
             with open(config_path, 'r') as file:
                 config = yaml.safe_load(file)
@@ -412,6 +418,7 @@ class DroneSimulator(Node):
         
         # Check bounds
         if map_x < 0 or map_x >= self.map_width or map_y < 0 or map_y >= self.map_height:
+            self.get_logger().warn(f'Position ({x:.2f}, {y:.2f}) is out of bounds: map_coords=({map_x}, {map_y})')
             return False
         
         # Check if occupied (add small safety margin)
@@ -422,6 +429,7 @@ class DroneSimulator(Node):
                 check_y = map_y + dy
                 if (0 <= check_x < self.map_width and 0 <= check_y < self.map_height):
                     if self.simulation_map[check_y, check_x] == 100:  # Occupied
+                        self.get_logger().warn(f'Collision detected at ({x:.2f}, {y:.2f}) -> map_coords=({check_x}, {check_y})')
                         return False
         
         return True
