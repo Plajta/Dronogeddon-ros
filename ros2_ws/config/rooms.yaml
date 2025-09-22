@@ -12,13 +12,6 @@ environment:
 
 # Furniture definitions
 furniture:
-  living_room:
-    - type: "sofa"
-      position: [-1.0, 0.0]
-      size: [2.0, 0.8]
-    - type: "table"
-      position: [1.0, 0.0]
-      size: [0.6, 0.6]
   kitchen:
     - type: "counter"
       position: [4.5, -1.0]
