@@ -12,6 +12,8 @@ from threading import Lock
 import time
 import random
 from enum import Enum
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from drone_interfaces.msg import TelemetryData, ToFDistances, RCcommands
 from drone_interfaces.srv import HeightCommands
@@ -171,6 +173,9 @@ class DroneSimulator(Node):
         self.add_furniture_from_config()
         
         self.get_logger().info(f'Created environment with {len(rooms)} rooms from configuration')
+        
+        # Generate visualization of the environment
+        self.save_environment_visualization()
     
     def add_doors_from_config(self):
         """Add doors between rooms based on configuration"""
@@ -591,6 +596,139 @@ class DroneSimulator(Node):
         while angle < -math.pi:
             angle += 2 * math.pi
         return angle
+    
+    def save_environment_visualization(self):
+        """Create and save a visualization of the environment with walls, furniture, and drone position"""
+        try:
+            # Create figure and axis
+            fig, ax = plt.subplots(1, 1, figsize=(12, 12))
+            
+            # Set up the coordinate system to match world coordinates
+            world_width = self.map_width * self.map_resolution
+            world_height = self.map_height * self.map_resolution
+            
+            ax.set_xlim(self.map_origin_x, self.map_origin_x + world_width)
+            ax.set_ylim(self.map_origin_y, self.map_origin_y + world_height)
+            ax.set_aspect('equal')
+            ax.grid(True, alpha=0.3)
+            ax.set_xlabel('X (meters)')
+            ax.set_ylabel('Y (meters)')
+            ax.set_title('Drone Simulator Environment')
+            
+            # Draw rooms from configuration
+            rooms = self.rooms_config.get('rooms', {})
+            for room_name, room_data in rooms.items():
+                center = room_data['center']
+                size = room_data['size']
+                color = room_data.get('color', [0.9, 0.9, 0.9, 0.3])
+                
+                # Draw room area (background)
+                room_rect = patches.Rectangle(
+                    (center[0] - size[0]/2, center[1] - size[1]/2),
+                    size[0], size[1],
+                    linewidth=1, edgecolor='black', facecolor=color[:3], alpha=color[3]
+                )
+                ax.add_patch(room_rect)
+                
+                # Add room label
+                ax.text(center[0], center[1], room_name.replace('_', ' ').title(), 
+                       ha='center', va='center', fontsize=10, fontweight='bold')
+            
+            # Draw walls (from simulation map)
+            if self.simulation_map is not None:
+                # Convert simulation map to world coordinates and draw walls
+                wall_patches = []
+                for y in range(self.map_height):
+                    for x in range(self.map_width):
+                        if self.simulation_map[y, x] == 100:  # Wall/obstacle
+                            world_x = self.map_origin_x + x * self.map_resolution
+                            world_y = self.map_origin_y + y * self.map_resolution
+                            wall_rect = patches.Rectangle(
+                                (world_x, world_y), self.map_resolution, self.map_resolution,
+                                linewidth=0, facecolor='black', alpha=0.8
+                            )
+                            wall_patches.append(wall_rect)
+                
+                # Add all wall patches at once for better performance
+                for patch in wall_patches:
+                    ax.add_patch(patch)
+            
+            # Draw furniture
+            furniture_config = self.rooms_config.get('furniture', {})
+            furniture_colors = {
+                'sofa': 'brown',
+                'table': 'saddlebrown', 
+                'counter': 'gray',
+                'bed': 'blue',
+                'desk': 'darkgreen'
+            }
+            
+            for room_name, furniture_list in furniture_config.items():
+                for furniture in furniture_list:
+                    position = furniture['position']
+                    size = furniture['size']
+                    furn_type = furniture['type']
+                    color = furniture_colors.get(furn_type, 'purple')
+                    
+                    # Draw furniture
+                    furn_rect = patches.Rectangle(
+                        (position[0] - size[0]/2, position[1] - size[1]/2),
+                        size[0], size[1],
+                        linewidth=2, edgecolor='black', facecolor=color, alpha=0.7
+                    )
+                    ax.add_patch(furn_rect)
+                    
+                    # Add furniture label
+                    ax.text(position[0], position[1], furn_type, 
+                           ha='center', va='center', fontsize=8, color='white', fontweight='bold')
+            
+            # Draw doors
+            doors = self.rooms_config.get('doors', [])
+            for door in doors:
+                position = door['position']
+                # Draw door as a green circle
+                door_circle = patches.Circle(position, 0.15, facecolor='green', edgecolor='darkgreen', linewidth=2)
+                ax.add_patch(door_circle)
+                ax.text(position[0], position[1]-0.3, 'DOOR', ha='center', va='center', fontsize=6, color='darkgreen')
+            
+            # Draw drone position
+            drone_circle = patches.Circle(
+                (self.position_x, self.position_y), 0.2, 
+                facecolor='red', edgecolor='darkred', linewidth=3
+            )
+            ax.add_patch(drone_circle)
+            
+            # Draw drone orientation arrow
+            arrow_length = 0.5
+            arrow_x = self.position_x + arrow_length * math.cos(self.yaw)
+            arrow_y = self.position_y + arrow_length * math.sin(self.yaw)
+            ax.arrow(self.position_x, self.position_y, 
+                    arrow_x - self.position_x, arrow_y - self.position_y,
+                    head_width=0.1, head_length=0.1, fc='red', ec='darkred')
+            
+            # Add drone label
+            ax.text(self.position_x, self.position_y-0.4, 'DRONE', 
+                   ha='center', va='center', fontsize=8, color='darkred', fontweight='bold')
+            
+            # Add legend
+            legend_elements = [
+                patches.Patch(color='black', label='Walls'),
+                patches.Patch(color='brown', label='Furniture'),
+                patches.Patch(color='green', label='Doors'),
+                patches.Patch(color='red', label='Drone')
+            ]
+            ax.legend(handles=legend_elements, loc='upper right')
+            
+            # Save the visualization
+            output_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..', 'environment_map.png')
+            output_path = os.path.abspath(output_path)
+            plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            self.get_logger().info(f'Environment visualization saved to: {output_path}')
+            
+        except Exception as e:
+            self.get_logger().error(f'Failed to create environment visualization: {e}')
 
 def main(args=None):
     rclpy.init(args=args)
