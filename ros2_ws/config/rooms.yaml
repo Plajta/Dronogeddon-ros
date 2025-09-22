@@ -2,6 +2,51 @@
 # This file defines all rooms with their positions, sizes, and properties
 # Layout represents a realistic apartment with proper room connections and no overlaps
 
+# Environment settings for simulation
+environment:
+  map_size: [400, 400]  # Map dimensions in pixels
+  resolution: 0.05      # Meters per pixel
+  origin: [-10.0, -10.0, 0.0]  # Map origin in world coordinates
+  wall_thickness: 3     # Wall thickness in pixels
+  door_size: 12         # Door opening size in pixels
+
+# Furniture definitions
+furniture:
+  living_room:
+    - type: "sofa"
+      position: [-1.0, 0.0]
+      size: [2.0, 0.8]
+    - type: "table"
+      position: [1.0, 0.0]
+      size: [0.6, 0.6]
+  kitchen:
+    - type: "counter"
+      position: [4.5, -1.0]
+      size: [1.5, 0.4]
+  bedroom:
+    - type: "bed"
+      position: [-3.0, -3.0]
+      size: [2.0, 1.5]
+  office:
+    - type: "desk"
+      position: [-3.0, 2.0]
+      size: [1.2, 0.8]
+
+# Door connections between rooms
+doors:
+  - from: "living_room"
+    to: "hallway"
+    position: [0.0, -1.5]
+  - from: "living_room"
+    to: "kitchen"
+    position: [2.0, 0.0]
+  - from: "hallway"
+    to: "bedroom"
+    position: [-3.0, -2.5]
+  - from: "hallway"
+    to: "bathroom"
+    position: [1.0, -2.5]
+
 rooms:
   living_room:
     id: "1"

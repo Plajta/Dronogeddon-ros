@@ -7,6 +7,7 @@ import math
 import json
 import cv2
 import os
+import yaml
 from threading import Lock
 import time
 import random
@@ -25,8 +26,12 @@ class DroneState(Enum):
     TAKING_OFF = 1
     FLYING = 2
     LANDING = 3
+    FALLING = 4
 
 class DroneSimulator(Node):
+    # Simulation timing constants
+    SIMULATION_TIMER_INTERVAL = 0.02  # 50Hz simulation
+    
     def __init__(self):
         super().__init__('drone_simulator')
         
@@ -71,6 +76,9 @@ class DroneSimulator(Node):
         self.rc_commands = RCcommands()
         self.data_lock = Lock()
         
+        # Time tracking for accurate physics simulation
+        self.last_simulation_time = None
+        
         # Load simulation environment
         self.load_simulation_environment()
         
@@ -86,7 +94,7 @@ class DroneSimulator(Node):
         self.height_service = self.create_service(HeightCommands, 'height_commands', self.height_command_callback)
         
         # Simulation timer (50Hz for smooth simulation)
-        self.sim_timer = self.create_timer(0.02, self.simulation_step)
+        self.sim_timer = self.create_timer(self.SIMULATION_TIMER_INTERVAL, self.simulation_step)
         
         # Sensor publishing timer (10Hz)
         self.sensor_timer = self.create_timer(0.1, self.publish_sensor_data)
@@ -95,172 +103,137 @@ class DroneSimulator(Node):
         self.get_logger().info(f'Environment: {self.map_width}x{self.map_height} pixels, resolution: {self.map_resolution}m/px')
     
     def load_simulation_environment(self):
-        """Load or create simulation environment"""
-        # Try to load from saved map first
-        maps_dir = "saved_maps"
-        if os.path.exists(maps_dir):
-            map_files = [f for f in os.listdir(maps_dir) if f.endswith('.png') and not 'trajectory' in f]
-            if map_files:
-                # Use the most recent map
-                latest_map = sorted(map_files)[-1]
-                map_path = os.path.join(maps_dir, latest_map)
-                self.get_logger().info(f'Loading simulation environment from: {map_path}')
-                self.load_map_from_file(map_path)
-                return
-        
-        # Create default environment if no saved maps
-        self.get_logger().info('Creating default simulation environment')
-        self.create_default_environment()
+        """Load simulation environment from rooms.yaml configuration"""
+        self.get_logger().info('Creating simulation environment from rooms.yaml configuration')
+        self.rooms_config = self.load_rooms_config()
+        self.create_environment_from_config()
     
-    def load_map_from_file(self, map_path):
-        """Load simulation environment from saved exploration map"""
+    def load_rooms_config(self):
+        """Load rooms configuration from rooms.yaml"""
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'rooms.yaml')
         try:
-            # Load the image
-            img = cv2.imread(map_path, cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                raise Exception(f"Could not load image: {map_path}")
-            
-            # Convert image to occupancy grid format
-            # Image: 0=black (occupied), 255=white (free), 128=gray (unknown)
-            # Occupancy: 0=free, 100=occupied, -1=unknown
-            self.simulation_map = np.zeros_like(img, dtype=np.int8)
-            self.simulation_map[img == 255] = 0    # Free space
-            self.simulation_map[img == 0] = 100    # Occupied space
-            self.simulation_map[img == 128] = -1   # Unknown space (treat as free for simulation)
-            
-            # Update map dimensions
-            self.map_height, self.map_width = img.shape
-            
-            # Try to load metadata for proper scaling
-            metadata_path = map_path.replace('.png', '_metadata.json')
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-                    self.map_resolution = metadata.get('resolution', 0.05)
-                    self.map_origin_x = metadata.get('origin_x', -10.0)
-                    self.map_origin_y = metadata.get('origin_y', -10.0)
-            
-            # Flip image (PNG has origin at top-left, occupancy grid at bottom-left)
-            self.simulation_map = np.flipud(self.simulation_map)
-            
-            self.get_logger().info(f'Loaded map: {self.map_width}x{self.map_height}, resolution: {self.map_resolution}')
-            
+            with open(config_path, 'r') as file:
+                config = yaml.safe_load(file)
+                self.get_logger().info(f'Loaded rooms configuration from: {config_path}')
+                return config
         except Exception as e:
-            self.get_logger().error(f'Error loading map: {e}')
-            self.create_default_environment()
+            self.get_logger().error(f'CRITICAL ERROR: Cannot load rooms config from {config_path}: {e}')
+            self.get_logger().error('Simulator cannot start without valid rooms.yaml configuration')
+            raise RuntimeError(f'Failed to load required configuration file: {config_path}')
     
-    def create_default_environment(self):
-        """Create a default simulation environment matching rooms.yaml layout"""
-        # Create realistic apartment layout matching rooms.yaml
+    
+    def create_environment_from_config(self):
+        """Create simulation environment from loaded rooms configuration"""
+        # Get environment settings
+        env_config = self.rooms_config.get('environment', {})
+        wall_thickness = env_config.get('wall_thickness', 3)
+        
+        # Initialize empty map (all unknown/free space)
         self.simulation_map = np.zeros((self.map_height, self.map_width), dtype=np.int8)
         
-        # Add outer walls
-        wall_thickness = 5
-        self.simulation_map[0:wall_thickness, :] = 100      # Top wall
-        self.simulation_map[-wall_thickness:, :] = 100     # Bottom wall
-        self.simulation_map[:, 0:wall_thickness] = 100     # Left wall
-        self.simulation_map[:, -wall_thickness:] = 100     # Right wall
+        # Process each room from configuration
+        rooms = self.rooms_config.get('rooms', {})
         
-        # Create realistic apartment layout with proper walls and rooms
-        # Based on updated rooms.yaml without overlaps
+        for room_name, room_data in rooms.items():
+            # Validate required parameters
+            if 'center' not in room_data:
+                raise ValueError(f"Room '{room_name}' is missing required 'center' parameter in rooms.yaml")
+            if 'size' not in room_data:
+                raise ValueError(f"Room '{room_name}' is missing required 'size' parameter in rooms.yaml")
+            
+            center = room_data['center']
+            size = room_data['size']
+            
+            # Validate parameter formats
+            if not isinstance(center, list) or len(center) != 2:
+                raise ValueError(f"Room '{room_name}' center must be a list of 2 numbers [x, y]")
+            if not isinstance(size, list) or len(size) != 2:
+                raise ValueError(f"Room '{room_name}' size must be a list of 2 numbers [width, height]")
+            
+            # Convert to map coordinates
+            room_x, room_y = self.world_to_map(center[0], center[1])
+            room_w = int(size[0] / self.map_resolution)
+            room_h = int(size[1] / self.map_resolution)
+            
+            # Add room walls for all rooms
+            self.add_room_walls(room_x, room_y, room_w, room_h, wall_thickness)
         
-        # Living room: center [0.0, 0.0], size [4.0, 3.0]
-        living_x, living_y = self.world_to_map(0.0, 0.0)
-        living_w, living_h = int(4.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        # Add doors from configuration
+        self.add_doors_from_config()
         
-        # Kitchen: center [4.5, 0.0], size [3.0, 3.0] 
-        kitchen_x, kitchen_y = self.world_to_map(4.5, 0.0)
-        kitchen_w, kitchen_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
+        # Add furniture from configuration
+        self.add_furniture_from_config()
         
-        # Bedroom: center [-3.0, -3.5], size [3.0, 3.0]
-        bedroom_x, bedroom_y = self.world_to_map(-3.0, -3.5)
-        bedroom_w, bedroom_h = int(3.0 / self.map_resolution), int(3.0 / self.map_resolution)
-        
-        # Bathroom: center [1.0, -3.5], size [2.0, 2.0]
-        bathroom_x, bathroom_y = self.world_to_map(1.0, -3.5)
-        bathroom_w, bathroom_h = int(2.0 / self.map_resolution), int(2.0 / self.map_resolution)
-        
-        # Office: center [-3.0, 2.5], size [2.5, 2.0]
-        office_x, office_y = self.world_to_map(-3.0, 2.5)
-        office_w, office_h = int(2.5 / self.map_resolution), int(2.0 / self.map_resolution)
-        
-        # Storage: center [3.5, -3.5], size [1.5, 1.5]
-        storage_x, storage_y = self.world_to_map(3.5, -3.5)
-        storage_w, storage_h = int(1.5 / self.map_resolution), int(1.5 / self.map_resolution)
-        
-        # Create room boundaries with walls
-        wall_thickness = 3
-        
-        # Living room walls
-        self.add_room_walls(living_x, living_y, living_w, living_h, wall_thickness)
-        
-        # Kitchen walls
-        self.add_room_walls(kitchen_x, kitchen_y, kitchen_w, kitchen_h, wall_thickness)
-        
-        # Bedroom walls
-        self.add_room_walls(bedroom_x, bedroom_y, bedroom_w, bedroom_h, wall_thickness)
-        
-        # Bathroom walls
-        self.add_room_walls(bathroom_x, bathroom_y, bathroom_w, bathroom_h, wall_thickness)
-        
-        # Office walls
-        self.add_room_walls(office_x, office_y, office_w, office_h, wall_thickness)
-        
-        # Storage walls
-        self.add_room_walls(storage_x, storage_y, storage_w, storage_h, wall_thickness)
-        
-        # Hallway - horizontal corridor connecting rooms
-        hallway_x, hallway_y = self.world_to_map(0.0, -2.0)
-        hallway_w, hallway_h = int(6.0 / self.map_resolution), int(1.0 / self.map_resolution)
-        
-        # Clear hallway space (no walls in hallway itself)
-        x1 = max(0, hallway_x - hallway_w//2)
-        x2 = min(self.map_width, hallway_x + hallway_w//2)
-        y1 = max(0, hallway_y - hallway_h//2)
-        y2 = min(self.map_height, hallway_y + hallway_h//2)
-        self.simulation_map[y1:y2, x1:x2] = 0
-        
-        # Add doors connecting rooms to hallway
-        door_size = 12
-        
-        # Living room to hallway door
-        door_y = hallway_y + hallway_h//2
-        self.simulation_map[door_y:door_y+wall_thickness, living_x-door_size//2:living_x+door_size//2] = 0
-        
-        # Kitchen to living room door
-        door_x = living_x + living_w//2
-        self.simulation_map[living_y-door_size//2:living_y+door_size//2, door_x:door_x+wall_thickness] = 0
-        
-        # Bedroom to hallway door
-        door_y = hallway_y - hallway_h//2
-        self.simulation_map[door_y-wall_thickness:door_y, bedroom_x-door_size//2:bedroom_x+door_size//2] = 0
-        
-        # Bathroom to hallway door
-        door_y = hallway_y - hallway_h//2
-        self.simulation_map[door_y-wall_thickness:door_y, bathroom_x-door_size//2:bathroom_x+door_size//2] = 0
-        
-        # Add realistic furniture
-        # Living room furniture
-        sofa_x, sofa_y = self.world_to_map(-1.0, 0.0)
-        self.simulation_map[sofa_y-8:sofa_y+8, sofa_x-20:sofa_x+20] = 100
-        
-        table_x, table_y = self.world_to_map(1.0, 0.0)
-        self.simulation_map[table_y-6:table_y+6, table_x-6:table_x+6] = 100
-        
-        # Kitchen furniture
-        counter_x, counter_y = self.world_to_map(4.5, -1.0)
-        self.simulation_map[counter_y-4:counter_y+4, counter_x-20:counter_x+20] = 100
-        
-        # Bedroom furniture
-        bed_x, bed_y = self.world_to_map(-3.0, -4.0)
-        self.simulation_map[bed_y-10:bed_y+10, bed_x-15:bed_x+15] = 100
-        
-        # Office furniture
-        desk_x, desk_y = self.world_to_map(-3.0, 2.0)
-        self.simulation_map[desk_y-4:desk_y+4, desk_x-12:desk_x+12] = 100
-        
-        self.get_logger().info('Created realistic apartment environment matching rooms.yaml')
+        self.get_logger().info(f'Created environment with {len(rooms)} rooms from configuration')
     
+    def add_doors_from_config(self):
+        """Add doors between rooms based on configuration"""
+        doors = self.rooms_config.get('doors', [])
+        env_config = self.rooms_config.get('environment', {})
+        door_size = env_config.get('door_size', 12)
+        wall_thickness = env_config.get('wall_thickness', 3)
+        
+        for i, door in enumerate(doors):
+            # Validate required parameters
+            if 'position' not in door:
+                raise ValueError(f"Door {i+1} is missing required 'position' parameter in rooms.yaml")
+            if 'from' not in door:
+                raise ValueError(f"Door {i+1} is missing required 'from' parameter in rooms.yaml")
+            if 'to' not in door:
+                raise ValueError(f"Door {i+1} is missing required 'to' parameter in rooms.yaml")
+            
+            position = door['position']
+            
+            # Validate parameter format
+            if not isinstance(position, list) or len(position) != 2:
+                raise ValueError(f"Door {i+1} position must be a list of 2 numbers [x, y]")
+            
+            door_x, door_y = self.world_to_map(position[0], position[1])
+            
+            # Create door opening (clear wall area)
+            x1 = max(0, door_x - door_size//2)
+            x2 = min(self.map_width, door_x + door_size//2)
+            y1 = max(0, door_y - wall_thickness//2)
+            y2 = min(self.map_height, door_y + wall_thickness//2)
+            
+            self.simulation_map[y1:y2, x1:x2] = 0
+    
+    def add_furniture_from_config(self):
+        """Add furniture to rooms based on configuration"""
+        furniture_config = self.rooms_config.get('furniture', {})
+        
+        for room_name, furniture_list in furniture_config.items():
+            for i, furniture in enumerate(furniture_list):
+                # Validate required parameters
+                if 'position' not in furniture:
+                    raise ValueError(f"Furniture {i+1} in room '{room_name}' is missing required 'position' parameter in rooms.yaml")
+                if 'size' not in furniture:
+                    raise ValueError(f"Furniture {i+1} in room '{room_name}' is missing required 'size' parameter in rooms.yaml")
+                if 'type' not in furniture:
+                    raise ValueError(f"Furniture {i+1} in room '{room_name}' is missing required 'type' parameter in rooms.yaml")
+                
+                position = furniture['position']
+                size = furniture['size']
+                
+                # Validate parameter formats
+                if not isinstance(position, list) or len(position) != 2:
+                    raise ValueError(f"Furniture {i+1} in room '{room_name}' position must be a list of 2 numbers [x, y]")
+                if not isinstance(size, list) or len(size) != 2:
+                    raise ValueError(f"Furniture {i+1} in room '{room_name}' size must be a list of 2 numbers [width, height]")
+                
+                # Convert to map coordinates
+                furn_x, furn_y = self.world_to_map(position[0], position[1])
+                furn_w = int(size[0] / self.map_resolution)
+                furn_h = int(size[1] / self.map_resolution)
+                
+                # Add furniture as occupied space
+                x1 = max(0, furn_x - furn_w//2)
+                x2 = min(self.map_width, furn_x + furn_w//2)
+                y1 = max(0, furn_y - furn_h//2)
+                y2 = min(self.map_height, furn_y + furn_h//2)
+                
+                self.simulation_map[y1:y2, x1:x2] = 100
+
     def add_room_walls(self, center_x, center_y, width, height, wall_thickness):
         """Add walls around a room"""
         x1 = max(0, center_x - width//2)
@@ -310,7 +283,20 @@ class DroneSimulator(Node):
     
     def simulation_step(self):
         """Main simulation step - update drone physics"""
-        dt = 0.02  # 50Hz simulation
+        # Calculate actual time delta for accurate physics
+        current_time = self.get_clock().now()
+        
+        if self.last_simulation_time is None:
+            # First simulation step - use nominal dt
+            dt = self.SIMULATION_TIMER_INTERVAL
+        else:
+            # Calculate actual time difference in seconds (millisecond precision)
+            dt_ms = (current_time - self.last_simulation_time).nanoseconds / 1e6  # Convert to milliseconds
+            dt = dt_ms / 1000.0  # Convert to seconds
+            # Clamp dt to reasonable bounds to avoid instability
+            dt = max(0.001, min(dt, 0.1))  # Between 1ms and 100ms
+        
+        self.last_simulation_time = current_time
         
         with self.data_lock:
             if self.drone_state == DroneState.LANDED:
@@ -334,6 +320,19 @@ class DroneSimulator(Node):
                     self.position_z = 0.0
                     self.drone_state = DroneState.LANDED
                     self.get_logger().info('Simulator: Landing complete')
+            
+            elif self.drone_state == DroneState.FALLING:
+                # Drone is falling due to collision - gravity acceleration
+                fall_acceleration = 9.81  # m/s^2
+                self.velocity_z -= fall_acceleration * dt
+                self.position_z += self.velocity_z * dt
+                
+                # Check if drone hit the ground
+                if self.position_z <= 0.0:
+                    self.position_z = 0.0
+                    self.velocity_z = 0.0
+                    self.drone_state = DroneState.LANDED
+                    self.get_logger().error('Drone crashed! Landing due to collision')
             
             elif self.drone_state == DroneState.FLYING:
                 # Process RC commands and update position
@@ -388,9 +387,12 @@ class DroneSimulator(Node):
             self.position_x = new_x
             self.position_y = new_y
         else:
-            # Stop if collision detected
+            # Collision detected - drone starts falling
+            self.drone_state = DroneState.FALLING
             self.velocity_x = 0.0
             self.velocity_y = 0.0
+            self.velocity_z = 0.0
+            self.get_logger().warn('Collision detected! Drone is falling to ground')
         
         # Limit altitude
         if new_z < 0.1:
@@ -413,7 +415,7 @@ class DroneSimulator(Node):
             return False
         
         # Check if occupied (add small safety margin)
-        safety_radius = int(0.3 / self.map_resolution)  # 30cm safety margin
+        safety_radius = int(0.1 / self.map_resolution)  # 10cm safety margin
         for dx in range(-safety_radius, safety_radius + 1):
             for dy in range(-safety_radius, safety_radius + 1):
                 check_x = map_x + dx
@@ -535,9 +537,6 @@ class DroneSimulator(Node):
     
     def publish_sensor_data(self):
         """Publish simulated sensor data"""
-        if self.drone_state == DroneState.LANDED:
-            return
-        
         current_time = self.get_clock().now()
         
         # Publish telemetry
