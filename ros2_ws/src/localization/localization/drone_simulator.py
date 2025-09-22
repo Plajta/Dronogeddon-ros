@@ -273,12 +273,21 @@ class DroneSimulator(Node):
     
     def height_command_callback(self, request, response):
         """Handle takeoff/landing commands"""
+        self.get_logger().info(f'Height command received: {request.command} (1=takeoff, 0=land)')
+        self.get_logger().info(f'Current drone state: {self.drone_state}')
+        
         if request.command == 1:  # Takeoff
             if self.drone_state == DroneState.LANDED:
-                self.drone_state = DroneState.TAKING_OFF
-                self.get_logger().info('Simulator: Starting takeoff')
-                response.success = True
+                # Check if starting position is valid before takeoff
+                if self.is_position_valid(self.position_x, self.position_y):
+                    self.drone_state = DroneState.TAKING_OFF
+                    self.get_logger().info('Simulator: Starting takeoff')
+                    response.success = True
+                else:
+                    self.get_logger().error('Cannot takeoff: drone is in invalid position (collision detected)')
+                    response.success = False
             else:
+                self.get_logger().warn(f'Cannot takeoff: drone is not landed (current state: {self.drone_state})')
                 response.success = False
         elif request.command == 0:  # Land
             if self.drone_state == DroneState.FLYING:
