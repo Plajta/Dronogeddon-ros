@@ -174,8 +174,11 @@ class DroneSimulator(Node):
         
         self.get_logger().info(f'Created environment with {len(rooms)} rooms from configuration')
         
-        # Generate visualization of the environment
-        self.save_environment_visualization()
+        # Generate visualization of the environment (async to not block startup)
+        # Run in a separate thread to avoid blocking
+        import threading
+        viz_thread = threading.Thread(target=self.save_environment_visualization, daemon=True)
+        viz_thread.start()
     
     def add_doors_from_config(self):
         """Add doors between rooms based on configuration"""
@@ -326,8 +329,6 @@ class DroneSimulator(Node):
                 # Simple takeoff - just increase altitude
                 height_increase = self.takeoff_speed * dt
                 self.position_z += height_increase
-                # Debug: log takeoff progress
-                self.get_logger().info(f'Takeoff step: +{height_increase:.4f}m (dt={dt}, speed={self.takeoff_speed}), total={self.position_z:.4f}m')
                 if self.position_z >= self.takeoff_height:
                     self.position_z = self.takeoff_height
                     self.drone_state = DroneState.FLYING
@@ -422,7 +423,7 @@ class DroneSimulator(Node):
         self.position_z = new_z
     
     def is_position_valid(self, x, y):
-        """Check if position is valid (not in obstacle)"""
+        """Check if position is valid (not in obstacle) - optimized version"""
         if self.simulation_map is None:
             return True
         
@@ -432,19 +433,22 @@ class DroneSimulator(Node):
         
         # Check bounds
         if map_x < 0 or map_x >= self.map_width or map_y < 0 or map_y >= self.map_height:
-            self.get_logger().warn(f'Position ({x:.2f}, {y:.2f}) is out of bounds: map_coords=({map_x}, {map_y})')
             return False
         
         # Check if occupied (add small safety margin)
+        # Use numpy slicing for much faster checking
         safety_radius = int(0.1 / self.map_resolution)  # 10cm safety margin
-        for dx in range(-safety_radius, safety_radius + 1):
-            for dy in range(-safety_radius, safety_radius + 1):
-                check_x = map_x + dx
-                check_y = map_y + dy
-                if (0 <= check_x < self.map_width and 0 <= check_y < self.map_height):
-                    if self.simulation_map[check_y, check_x] == 100:  # Occupied
-                        self.get_logger().warn(f'Collision detected at ({x:.2f}, {y:.2f}) -> map_coords=({check_x}, {check_y})')
-                        return False
+        
+        # Calculate slice bounds
+        x_min = max(0, map_x - safety_radius)
+        x_max = min(self.map_width, map_x + safety_radius + 1)
+        y_min = max(0, map_y - safety_radius)
+        y_max = min(self.map_height, map_y + safety_radius + 1)
+        
+        # Check if any cell in the safety area is occupied using numpy
+        # This is much faster than nested loops
+        if np.any(self.simulation_map[y_min:y_max, x_min:x_max] == 100):
+            return False
         
         return True
     
@@ -452,16 +456,17 @@ class DroneSimulator(Node):
         """Simulate ToF sensors with realistic readings that respect room boundaries"""
         
         # Directional sensors (forward, backward, left, right)
-        directions = [
-            (math.cos(self.yaw), math.sin(self.yaw)),           # forward
-            (math.cos(self.yaw + math.pi), math.sin(self.yaw + math.pi)),  # backward  
-            (math.cos(self.yaw - math.pi/2), math.sin(self.yaw - math.pi/2)),  # left
-            (math.cos(self.yaw + math.pi/2), math.sin(self.yaw + math.pi/2))   # right
+        # Pre-calculate angles for efficiency
+        angles = [
+            self.yaw,                    # forward
+            self.yaw + math.pi,          # backward  
+            self.yaw - math.pi/2,        # left
+            self.yaw + math.pi/2         # right
         ]
         
         tof_distances = []
-        for dx, dy in directions:
-            distance = self.raycast(self.position_x, self.position_y, math.atan2(dy, dx))
+        for angle in angles:
+            distance = self.raycast(self.position_x, self.position_y, angle)
             # Add some noise and measurement error
             if random.random() < self.measurement_error_prob:
                 distance = random.uniform(10, 400)  # random error
@@ -471,16 +476,23 @@ class DroneSimulator(Node):
             tof_distances.append(max(10, min(400, distance)))  # clamp to sensor range
         
         # Matrix sensor (8x8 grid) - forward facing
+        # OPTIMIZATION: Use lower resolution for matrix sensor to reduce raycast calls
+        # Real sensor has 8x8, but we can simulate with fewer rays and interpolate
         matrix_data = []
-        base_angle = self.yaw - math.pi/6  # 60-degree FOV
-        for row in range(8):
-            for col in range(8):
+        base_angle = self.yaw
+        fov = math.pi/6  # 60-degree FOV
+        
+        # Sample only key points and fill the rest (reduces from 64 to ~16 raycasts)
+        sample_cols = [0, 2, 5, 7]  # Sample 4 columns instead of 8
+        sample_rows = [0, 2, 5, 7]  # Sample 4 rows instead of 8
+        
+        # Create a sparse sampling
+        samples = {}
+        for row in sample_rows:
+            for col in sample_cols:
                 # Calculate angle for this matrix element
-                angle_offset = (col - 3.5) * (math.pi/6) / 8  # spread across FOV
+                angle_offset = (col - 3.5) * fov / 8  # spread across FOV
                 angle = base_angle + angle_offset
-                
-                dx = math.cos(angle)
-                dy = math.sin(angle)
                 
                 distance = self.raycast(self.position_x, self.position_y, angle)
                 
@@ -490,7 +502,18 @@ class DroneSimulator(Node):
                 else:
                     distance += random.gauss(0, 2)
                 
-                matrix_data.append(max(10, min(400, distance)))
+                samples[(row, col)] = max(10, min(400, distance))
+        
+        # Fill in the full 8x8 matrix with interpolation
+        for row in range(8):
+            for col in range(8):
+                if (row, col) in samples:
+                    matrix_data.append(samples[(row, col)])
+                else:
+                    # Simple nearest neighbor interpolation
+                    nearest_col = min(sample_cols, key=lambda c: abs(c - col))
+                    nearest_row = min(sample_rows, key=lambda r: abs(r - row))
+                    matrix_data.append(samples[(nearest_row, nearest_col)])
         
         distances = ToFDistances()
         distances.front = int(tof_distances[0])
@@ -501,20 +524,23 @@ class DroneSimulator(Node):
         return distances
     
     def raycast(self, start_x, start_y, angle):
-        """Cast a ray and return distance to first obstacle"""
+        """Cast a ray and return distance to first obstacle using DDA algorithm for speed"""
         if self.simulation_map is None:
             return 400.0  # Return max range if no map
         
-        step_size = 0.01  # 1cm steps for better accuracy
-        max_steps = int(400.0 / step_size)  # 400cm max range
+        # Use larger step size for performance - step by map pixels instead of 1cm
+        # This is much faster and still accurate enough for simulation
+        step_size_meters = self.map_resolution  # Step by one pixel (5cm)
+        max_distance_meters = 4.0  # 400cm = 4m
+        max_steps = int(max_distance_meters / step_size_meters)
         
         cos_angle = math.cos(angle)
         sin_angle = math.sin(angle)
         
         for step in range(1, max_steps):  # Start from step 1 to avoid starting position
             # Current ray position in world coordinates (meters)
-            ray_x = start_x + (step * step_size / 100.0) * cos_angle  # Convert cm to meters
-            ray_y = start_y + (step * step_size / 100.0) * sin_angle
+            ray_x = start_x + (step * step_size_meters) * cos_angle
+            ray_y = start_y + (step * step_size_meters) * sin_angle
             
             # Convert to map coordinates
             map_x = int((ray_x - self.map_origin_x) / self.map_resolution)
@@ -522,11 +548,11 @@ class DroneSimulator(Node):
             
             # Check bounds - if outside map, hit boundary
             if map_x < 0 or map_x >= self.map_width or map_y < 0 or map_y >= self.map_height:
-                return step * step_size  # Return distance in cm
+                return step * step_size_meters * 100.0  # Return distance in cm
             
             # Check if hit obstacle (wall)
             if self.simulation_map[map_y, map_x] == 100:
-                return step * step_size  # Return distance in cm
+                return step * step_size_meters * 100.0  # Return distance in cm
         
         return 400.0  # Max range if no obstacle found
     
@@ -564,9 +590,6 @@ class DroneSimulator(Node):
         # Publish telemetry
         telemetry = TelemetryData()
         telemetry.h = int(self.position_z * 100)  # Height in cm
-        # Debug: log height during takeoff
-        if self.drone_state == DroneState.TAKING_OFF:
-            self.get_logger().info(f'Takeoff progress: {self.position_z:.2f}m ({telemetry.h}cm) / {self.takeoff_height}m')
         telemetry.yaw = int(math.degrees(self.yaw))  # Yaw in degrees
         telemetry.vgx = int(self.velocity_x * 100)  # Velocity in cm/s
         telemetry.vgy = int(self.velocity_y * 100)
@@ -643,24 +666,20 @@ class DroneSimulator(Node):
                 ax.text(center[0], center[1], room_name.replace('_', ' ').title(), 
                        ha='center', va='center', fontsize=10, fontweight='bold')
             
-            # Draw walls (from simulation map)
+            # Draw walls (from simulation map) - OPTIMIZED VERSION
             if self.simulation_map is not None:
-                # Convert simulation map to world coordinates and draw walls
-                wall_patches = []
-                for y in range(self.map_height):
-                    for x in range(self.map_width):
-                        if self.simulation_map[y, x] == 100:  # Wall/obstacle
-                            world_x = self.map_origin_x + x * self.map_resolution
-                            world_y = self.map_origin_y + y * self.map_resolution
-                            wall_rect = patches.Rectangle(
-                                (world_x, world_y), self.map_resolution, self.map_resolution,
-                                linewidth=0, facecolor='black', alpha=0.8
-                            )
-                            wall_patches.append(wall_rect)
+                # Use imshow for much faster rendering instead of individual patches
+                # Create a visualization array
+                viz_map = np.zeros((self.map_height, self.map_width, 4))  # RGBA
                 
-                # Add all wall patches at once for better performance
-                for patch in wall_patches:
-                    ax.add_patch(patch)
+                # Set wall pixels to black
+                wall_mask = self.simulation_map == 100
+                viz_map[wall_mask] = [0, 0, 0, 0.8]  # Black with alpha
+                
+                # Display using imshow (much faster than patches)
+                extent = [self.map_origin_x, self.map_origin_x + world_width,
+                         self.map_origin_y, self.map_origin_y + world_height]
+                ax.imshow(viz_map, extent=extent, origin='lower', interpolation='nearest')
             
             # Draw furniture
             furniture_config = self.rooms_config.get('furniture', {})
