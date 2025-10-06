@@ -57,10 +57,10 @@ class DroneSimulator(Node):
         self.yaw_velocity = 0.0     # rad/s
         
         # Physical parameters
-        self.max_speed = 2.0        # m/s
-        self.max_yaw_rate = 1.0     # rad/s
+        self.max_speed = 0.5        # m/s (reduced from 2.0 for safer indoor navigation)
+        self.max_yaw_rate = 0.5     # rad/s (reduced from 1.0 for smoother turns)
         self.takeoff_height = 1.5   # meters
-        self.takeoff_speed = 2.0    # m/s (increased from 0.5)
+        self.takeoff_speed = 0.5    # m/s (reduced from 2.0)
         self.landing_speed = 0.3    # m/s
         
         # ToF sensor configuration (4 sensors + matrix sensor)
@@ -70,9 +70,9 @@ class DroneSimulator(Node):
         self.matrix_sensor_resolution = 8   # 8x8 matrix
         
         # Sensor noise and limitations
-        self.sensor_noise_std = 0.02    # Standard deviation for sensor noise (2cm)
-        self.max_range_variation = 0.3  # Variation when at max range (30cm)
-        self.measurement_error_prob = 0.05  # 5% chance of measurement error
+        self.sensor_noise_std = 0.01    # Standard deviation for sensor noise (1cm)
+        self.max_range_variation = 0.1  # Variation when at max range (10cm)
+        self.measurement_error_prob = 0.01  # 1% chance of measurement error (reduced from 5%)
         
         # Control inputs
         self.rc_commands = RCcommands()
@@ -455,13 +455,13 @@ class DroneSimulator(Node):
     def simulate_tof_sensors(self):
         """Simulate ToF sensors with realistic readings that respect room boundaries"""
         
-        # Directional sensors (forward, backward, left, right)
-        # Pre-calculate angles for efficiency
+        # Directional sensors (forward, left, back, right)
+        # Pre-calculate angles for efficiency - ORDER MUST MATCH ToFDistances message fields
         angles = [
-            self.yaw,                    # forward
-            self.yaw + math.pi,          # backward  
-            self.yaw - math.pi/2,        # left
-            self.yaw + math.pi/2         # right
+            self.yaw,                    # forward (0 degrees offset)
+            self.yaw - math.pi/2,        # left (-90 degrees offset)
+            self.yaw + math.pi,          # backward (180 degrees offset)
+            self.yaw + math.pi/2         # right (+90 degrees offset)
         ]
         
         tof_distances = []
@@ -469,9 +469,9 @@ class DroneSimulator(Node):
             distance = self.raycast(self.position_x, self.position_y, angle)
             # Add some noise and measurement error
             if random.random() < self.measurement_error_prob:
-                distance = random.uniform(10, 400)  # random error
+                distance += random.uniform(-20, 20)  # small error instead of completely random
             else:
-                distance += random.gauss(0, 2)  # small noise
+                distance += random.gauss(0, 1)  # reduced noise from 2cm to 1cm
             
             tof_distances.append(max(10, min(400, distance)))  # clamp to sensor range
         
@@ -498,9 +498,9 @@ class DroneSimulator(Node):
                 
                 # Add noise
                 if random.random() < self.measurement_error_prob:
-                    distance = random.uniform(10, 400)
+                    distance += random.uniform(-20, 20)  # small error instead of completely random
                 else:
-                    distance += random.gauss(0, 2)
+                    distance += random.gauss(0, 1)  # reduced noise from 2cm to 1cm
                 
                 samples[(row, col)] = max(10, min(400, distance))
         
@@ -516,10 +516,10 @@ class DroneSimulator(Node):
                     matrix_data.append(samples[(nearest_row, nearest_col)])
         
         distances = ToFDistances()
-        distances.front = int(tof_distances[0])
-        distances.left = int(tof_distances[1])
-        distances.back = int(tof_distances[2])
-        distances.right = int(tof_distances[3])
+        distances.front = int(tof_distances[0])  # forward sensor
+        distances.left = int(tof_distances[1])   # left sensor
+        distances.back = int(tof_distances[2])   # backward sensor
+        distances.right = int(tof_distances[3])  # right sensor
         distances.matrix = [int(x) for x in matrix_data]
         return distances
     
@@ -528,9 +528,9 @@ class DroneSimulator(Node):
         if self.simulation_map is None:
             return 400.0  # Return max range if no map
         
-        # Use larger step size for performance - step by map pixels instead of 1cm
-        # This is much faster and still accurate enough for simulation
-        step_size_meters = self.map_resolution  # Step by one pixel (5cm)
+        # Use optimized step size for balance between performance and accuracy
+        # Smaller step = more accurate wall detection, but slower
+        step_size_meters = self.map_resolution * 0.5  # Step by half pixel (2.5cm) for better accuracy
         max_distance_meters = 4.0  # 400cm = 4m
         max_steps = int(max_distance_meters / step_size_meters)
         
