@@ -22,11 +22,15 @@ class RVizVisualizer(Node):
         self.rooms = {}
         self._load_rooms_from_config()
         
-        # Drone state
+        # Drone state (estimated from SLAM)
         self.drone_position = (0.0, 0.0, 1.5)
         self.drone_yaw = 0.0
         self.drone_trajectory = []
         self.max_trajectory_points = 100
+        
+        # Ground truth (only available in simulation)
+        self.ground_truth_position = None
+        self.ground_truth_yaw = None
         
         # Mission state
         self.current_mission_state = "IDLE"
@@ -36,6 +40,12 @@ class RVizVisualizer(Node):
         # Subscribers
         self.telemetry_sub = self.create_subscription(
             TelemetryData, 'telemetry', self.telemetry_callback, 10)
+        # Subscribe to estimated pose from SLAM (primary source)
+        self.pose_sub = self.create_subscription(
+            PoseStamped, 'estimated_pose', self.pose_callback, 10)
+        # Also subscribe to ground truth from simulator (for comparison in simulation)
+        self.ground_truth_sub = self.create_subscription(
+            PoseStamped, 'drone_pose', self.ground_truth_callback, 10)
         self.distances_sub = self.create_subscription(
             ToFDistances, 'ToF_distances', self.distances_callback, 10)
         self.motion_sub = self.create_subscription(
@@ -76,31 +86,57 @@ class RVizVisualizer(Node):
         
         self.get_logger().info(f'Loaded {len(self.rooms)} rooms from configuration')
 
-    def telemetry_callback(self, msg):
+    def pose_callback(self, msg):
+        """Update drone position from SLAM estimated pose (primary source)"""
         with self.data_lock:
-            # Update drone position (simple dead reckoning)
-            self.drone_yaw = math.radians(msg.yaw)
+            # Extract position
+            self.drone_position = (
+                msg.pose.position.x,
+                msg.pose.position.y,
+                msg.pose.position.z
+            )
             
-            # For now, use simple position estimation
-            # In real implementation, you'd integrate this with SLAM
-            if hasattr(self, 'last_telemetry_time'):
-                dt = 0.1  # assume 10Hz
-                vx = msg.vgx / 100.0  # cm/s to m/s
-                vy = msg.vgy / 100.0
-                
-                # Update position
-                old_pos = self.drone_position
-                new_x = old_pos[0] + (vx * math.cos(self.drone_yaw) - vy * math.sin(self.drone_yaw)) * dt
-                new_y = old_pos[1] + (vx * math.sin(self.drone_yaw) + vy * math.cos(self.drone_yaw)) * dt
-                new_z = msg.h / 100.0  # height in meters
-                
-                self.drone_position = (new_x, new_y, new_z)
-                
-                # Add to trajectory
-                self.drone_trajectory.append(self.drone_position)
-                if len(self.drone_trajectory) > self.max_trajectory_points:
-                    self.drone_trajectory.pop(0)
+            # Extract yaw from quaternion
+            qx = msg.pose.orientation.x
+            qy = msg.pose.orientation.y
+            qz = msg.pose.orientation.z
+            qw = msg.pose.orientation.w
             
+            # Convert quaternion to yaw (Euler angle)
+            siny_cosp = 2 * (qw * qz + qx * qy)
+            cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
+            self.drone_yaw = math.atan2(siny_cosp, cosy_cosp)
+            
+            # Add to trajectory
+            self.drone_trajectory.append(self.drone_position)
+            if len(self.drone_trajectory) > self.max_trajectory_points:
+                self.drone_trajectory.pop(0)
+    
+    def ground_truth_callback(self, msg):
+        """Update ground truth position from simulator (only for comparison)"""
+        with self.data_lock:
+            # Extract position
+            self.ground_truth_position = (
+                msg.pose.position.x,
+                msg.pose.position.y,
+                msg.pose.position.z
+            )
+            
+            # Extract yaw from quaternion
+            qx = msg.pose.orientation.x
+            qy = msg.pose.orientation.y
+            qz = msg.pose.orientation.z
+            qw = msg.pose.orientation.w
+            
+            # Convert quaternion to yaw (Euler angle)
+            siny_cosp = 2 * (qw * qz + qx * qy)
+            cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
+            self.ground_truth_yaw = math.atan2(siny_cosp, cosy_cosp)
+    
+    def telemetry_callback(self, msg):
+        """Store telemetry data (height, battery, etc.)"""
+        with self.data_lock:
+            # Just store for reference, position comes from pose_callback
             self.last_telemetry_time = self.get_clock().now()
 
     def distances_callback(self, msg):
@@ -446,7 +482,7 @@ class RVizVisualizer(Node):
             marker.color.r = 0.0
             marker.color.g = 1.0
             marker.color.b = 0.0
-            marker.color.a = 0.4  # Semi-transparent
+            marker.color.a = 0.8  # More opaque for better visibility
             
             marker.lifetime.sec = 0  # Persistent
             marker_array.markers.append(marker)

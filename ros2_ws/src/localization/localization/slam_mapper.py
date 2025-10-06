@@ -11,7 +11,7 @@ from datetime import datetime
 
 from drone_interfaces.msg import TelemetryData, ToFDistances
 from nav_msgs.msg import OccupancyGrid, MapMetaData
-from geometry_msgs.msg import Pose, Point, Quaternion
+from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from std_msgs.msg import Header
 # Import centralized tf_transformations fix
 from .tf_transformations_fix import quaternion_from_euler, euler_from_quaternion
@@ -49,9 +49,12 @@ class SLAMMapper(Node):
         
         # Publishers
         self.map_pub = self.create_publisher(OccupancyGrid, 'map', 1)
+        self.pose_pub = self.create_publisher(PoseStamped, 'estimated_pose', 10)
         
         # Timer for map publishing
         self.map_timer = self.create_timer(1.0, self.publish_map)
+        # Timer for pose publishing (10Hz for smooth visualization)
+        self.pose_timer = self.create_timer(0.1, self.publish_pose)
         
         # Exploration tracking
         self.explored_cells = set()
@@ -209,6 +212,28 @@ class SLAMMapper(Node):
         explored_percentage = len(self.explored_cells) / (self.map_width * self.map_height) * 100
         self.get_logger().info(f'Map published. Explored: {explored_percentage:.1f}% '
                              f'Robot pos: ({self.robot_x:.2f}, {self.robot_y:.2f})')
+    
+    def publish_pose(self):
+        """Publish estimated robot pose from SLAM"""
+        with self.data_lock:
+            pose_msg = PoseStamped()
+            pose_msg.header = Header()
+            pose_msg.header.stamp = self.get_clock().now().to_msg()
+            pose_msg.header.frame_id = "map"
+            
+            # Position from SLAM estimation
+            pose_msg.pose.position.x = self.robot_x
+            pose_msg.pose.position.y = self.robot_y
+            pose_msg.pose.position.z = self.robot_height
+            
+            # Orientation (yaw) from telemetry/odometry
+            quat = quaternion_from_euler(0, 0, self.robot_yaw)
+            pose_msg.pose.orientation.x = quat[0]
+            pose_msg.pose.orientation.y = quat[1]
+            pose_msg.pose.orientation.z = quat[2]
+            pose_msg.pose.orientation.w = quat[3]
+            
+            self.pose_pub.publish(pose_msg)
 
     def save_map(self, filename=None):
         """Save current map to file"""

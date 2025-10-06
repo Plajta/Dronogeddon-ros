@@ -9,6 +9,7 @@ environment:
   origin: [-10.0, -10.0, 0.0]  # Map origin in world coordinates
   wall_thickness: 3     # Wall thickness in pixels
   door_size: 12         # Door opening size in pixels
+  drone_start_position: [0.0, 0.0, 0.0]  # Drone starts in center of Living Room
 
 # Furniture definitions
 furniture:
@@ -35,10 +36,13 @@ doors:
     position: [2.0, 0.0]
   - from: "hallway"
     to: "bedroom"
-    position: [-3.0, -2.5]
+    position: [-1.5, -2.5]
   - from: "hallway"
     to: "bathroom"
     position: [1.0, -2.5]
+  - from: "kitchen"
+    to: "balcony"
+    position: [5.0, 0.0]
 
 rooms:
   living_room:
@@ -52,7 +56,7 @@ rooms:
   kitchen:
     id: "2"
     name: "Kitchen"
-    center: [4.5, 0.0]
+    center: [3.5, 0.0]
     size: [3.0, 3.0]
     color: [0.8, 0.2, 0.2, 0.3]  # RGBA - Red
     description: "Cooking and dining area"
@@ -60,8 +64,8 @@ rooms:
   bedroom:
     id: "3"
     name: "Bedroom"
-    center: [-3.0, -3.5]
-    size: [3.0, 3.0]
+    center: [-3.0, -3.75]
+    size: [3.0, 2.5]
     color: [0.2, 0.2, 0.8, 0.3]  # RGBA - Blue
     description: "Main bedroom"
     
@@ -92,8 +96,8 @@ rooms:
   balcony:
     id: "7"
     name: "Balcony"
-    center: [6.5, 0.0]
-    size: [1.5, 2.0]
+    center: [6.0, 0.0]
+    size: [2.0, 3.0]
     color: [0.5, 0.8, 0.2, 0.3]  # RGBA - Light Green
     description: "Outdoor balcony area"
     
