@@ -8,7 +8,7 @@ environment:
   resolution: 0.05      # Meters per pixel
   origin: [-10.0, -10.0, 0.0]  # Map origin in world coordinates
   wall_thickness: 3     # Wall thickness in pixels
-  door_size: 12         # Door opening size in pixels
+  door_size: 18         # Door opening size in pixels (18 * 0.05m = 0.9m = 90cm)
   drone_start_position: [0.0, 0.0, 0.0]  # Drone starts in center of Living Room
 
 # Furniture definitions
@@ -27,22 +27,37 @@ furniture:
       size: [1.2, 0.8]
 
 # Door connections between rooms
+# orientation: "horizontal" = door along X axis (for walls perpendicular to Y)
+#              "vertical" = door along Y axis (for walls perpendicular to X)
 doors:
   - from: "living_room"
     to: "hallway"
     position: [0.0, -1.5]
+    orientation: "horizontal"  # Wall runs along X axis
   - from: "living_room"
     to: "kitchen"
     position: [2.0, 0.0]
+    orientation: "vertical"  # Wall runs along Y axis
+  - from: "living_room"
+    to: "office"
+    position: [0.0, 1.5]
+    orientation: "horizontal"  # Wall runs along X axis
   - from: "hallway"
     to: "bedroom"
     position: [-1.5, -2.5]
+    orientation: "horizontal"  # Wall runs along X axis
   - from: "hallway"
     to: "bathroom"
     position: [1.0, -2.5]
+    orientation: "horizontal"  # Wall runs along X axis
+  - from: "hallway"
+    to: "storage"
+    position: [2.0, -2.5]
+    orientation: "horizontal"  # Wall runs along X axis
   - from: "kitchen"
     to: "balcony"
     position: [5.0, 0.0]
+    orientation: "vertical"  # Wall runs along Y axis
 
 rooms:
   living_room:
@@ -88,7 +103,7 @@ rooms:
   office:
     id: "6"
     name: "Office"
-    center: [-3.0, 2.5]
+    center: [-1.25, 2.5]
     size: [2.5, 2.0]
     color: [0.2, 0.8, 0.8, 0.3]  # RGBA - Cyan
     description: "Home office/study"
@@ -104,8 +119,8 @@ rooms:
   storage:
     id: "8"
     name: "Storage"
-    center: [3.5, -3.5]
-    size: [1.5, 1.5]
+    center: [3.0, -3.5]
+    size: [2.0, 2.0]
     color: [0.6, 0.4, 0.2, 0.3]  # RGBA - Brown
     description: "Storage room"
 

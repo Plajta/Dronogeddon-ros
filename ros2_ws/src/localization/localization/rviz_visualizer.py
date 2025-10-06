@@ -457,6 +457,7 @@ class RVizVisualizer(Node):
                 continue
             
             position = door['position']
+            orientation = door.get('orientation', 'horizontal')  # Default to horizontal
             
             # Create door marker (thin rectangle)
             marker = Marker()
@@ -470,19 +471,30 @@ class RVizVisualizer(Node):
             # Position
             marker.pose.position.x = position[0]
             marker.pose.position.y = position[1]
-            marker.pose.position.z = 1.0  # Door height (middle of doorway)
-            marker.pose.orientation.w = 1.0
+            marker.pose.position.z = 0.5  # Lower for better visibility from above
             
-            # Size - thin rectangle representing door opening
-            marker.scale.x = door_size
-            marker.scale.y = wall_thickness
-            marker.scale.z = 2.0  # Door height (2 meters)
+            # Orientation - rotate 90° for vertical walls
+            if orientation == 'vertical':
+                # Rotate 90° around Z axis for vertical walls
+                quat = quaternion_from_euler(0, 0, math.pi/2)
+                marker.pose.orientation.x = quat[0]
+                marker.pose.orientation.y = quat[1]
+                marker.pose.orientation.z = quat[2]
+                marker.pose.orientation.w = quat[3]
+            else:
+                # No rotation for horizontal walls
+                marker.pose.orientation.w = 1.0
             
-            # Color - semi-transparent green to indicate passable
+            # Size - door opening along X, wall thickness along Y (before rotation)
+            marker.scale.x = door_size  # Door opening width (90cm)
+            marker.scale.y = wall_thickness * 3.0  # Wall thickness (visible from above)
+            marker.scale.z = 2.0  # Height (2 meters)
+            
+            # Color - bright green to indicate passable
             marker.color.r = 0.0
             marker.color.g = 1.0
             marker.color.b = 0.0
-            marker.color.a = 0.8  # More opaque for better visibility
+            marker.color.a = 0.9  # Very opaque for visibility
             
             marker.lifetime.sec = 0  # Persistent
             marker_array.markers.append(marker)
