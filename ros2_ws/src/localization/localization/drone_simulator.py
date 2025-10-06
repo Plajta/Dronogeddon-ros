@@ -44,6 +44,7 @@ class DroneSimulator(Node):
         self.map_origin_y = -10.0
         self.map_width = 400        # pixels
         self.map_height = 400       # pixels
+        self.doors = []             # Store door positions for visualization
         
         # Drone state
         self.drone_state = DroneState.LANDED
@@ -204,13 +205,24 @@ class DroneSimulator(Node):
             
             door_x, door_y = self.world_to_map(position[0], position[1])
             
-            # Create door opening (clear wall area)
+            # Store door info for visualization and sensor transparency
+            door_info = {
+                'position': position,
+                'from': door['from'],
+                'to': door['to'],
+                'size': door_size * self.map_resolution,  # Convert to meters
+                'thickness': wall_thickness * self.map_resolution
+            }
+            self.doors.append(door_info)
+            
+            # Create door opening - mark as transparent (50) instead of free (0)
+            # This allows sensors to see through but distinguishes from walls
             x1 = max(0, door_x - door_size//2)
             x2 = min(self.map_width, door_x + door_size//2)
             y1 = max(0, door_y - wall_thickness//2)
             y2 = min(self.map_height, door_y + wall_thickness//2)
             
-            self.simulation_map[y1:y2, x1:x2] = 0
+            self.simulation_map[y1:y2, x1:x2] = 50  # 50 = door (transparent to sensors)
     
     def add_furniture_from_config(self):
         """Add furniture to rooms based on configuration"""
@@ -524,7 +536,11 @@ class DroneSimulator(Node):
         return distances
     
     def raycast(self, start_x, start_y, angle):
-        """Cast a ray and return distance to first obstacle using DDA algorithm for speed"""
+        """Cast a ray and return distance to first obstacle using DDA algorithm for speed
+        
+        Doors (value 50) are transparent to sensors - ray passes through them.
+        Walls (value 100) block the ray.
+        """
         if self.simulation_map is None:
             return 400.0  # Return max range if no map
         
@@ -550,7 +566,8 @@ class DroneSimulator(Node):
             if map_x < 0 or map_x >= self.map_width or map_y < 0 or map_y >= self.map_height:
                 return step * step_size_meters * 100.0  # Return distance in cm
             
-            # Check if hit obstacle (wall)
+            # Check if hit obstacle (wall=100)
+            # Doors (50) are transparent - sensors see through them
             if self.simulation_map[map_y, map_x] == 100:
                 return step * step_size_meters * 100.0  # Return distance in cm
         

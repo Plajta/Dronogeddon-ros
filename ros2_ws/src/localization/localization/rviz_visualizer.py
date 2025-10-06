@@ -53,6 +53,7 @@ class RVizVisualizer(Node):
         self.tof_marker_pub = self.create_publisher(MarkerArray, 'tof_sensors', 10)
         self.sensor_ranges_pub = self.create_publisher(MarkerArray, 'sensor_ranges', 10)
         self.investigation_marker_pub = self.create_publisher(Marker, 'investigation_target', 10)
+        self.door_markers_pub = self.create_publisher(MarkerArray, 'door_markers', 10)
         
         # Timers
         self.visualization_timer = self.create_timer(0.5, self.publish_visualizations)
@@ -157,6 +158,7 @@ class RVizVisualizer(Node):
         self.publish_trajectory()
         self.publish_sensor_ranges()
         self.publish_investigation_target()
+        self.publish_door_markers()
 
     def publish_room_markers(self):
         """Publish room boundary markers"""
@@ -400,6 +402,83 @@ class RVizVisualizer(Node):
         with self.data_lock:
             for room_info in self.rooms.values():
                 room_info['detected_motion'] = False
+    
+    def publish_door_markers(self):
+        """Publish door markers for RViz visualization"""
+        doors = self.room_config.config.get('doors', [])
+        if not doors:
+            return
+        
+        marker_array = MarkerArray()
+        current_time = self.get_clock().now()
+        
+        env_config = self.room_config.config.get('environment', {})
+        door_size = env_config.get('door_size', 12) * 0.05  # Convert pixels to meters
+        wall_thickness = env_config.get('wall_thickness', 3) * 0.05
+        
+        for i, door in enumerate(doors):
+            if 'position' not in door:
+                continue
+            
+            position = door['position']
+            
+            # Create door marker (thin rectangle)
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = current_time.to_msg()
+            marker.ns = "doors"
+            marker.id = i
+            marker.type = Marker.CUBE
+            marker.action = Marker.ADD
+            
+            # Position
+            marker.pose.position.x = position[0]
+            marker.pose.position.y = position[1]
+            marker.pose.position.z = 1.0  # Door height (middle of doorway)
+            marker.pose.orientation.w = 1.0
+            
+            # Size - thin rectangle representing door opening
+            marker.scale.x = door_size
+            marker.scale.y = wall_thickness
+            marker.scale.z = 2.0  # Door height (2 meters)
+            
+            # Color - semi-transparent green to indicate passable
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0
+            marker.color.a = 0.4  # Semi-transparent
+            
+            marker.lifetime.sec = 0  # Persistent
+            marker_array.markers.append(marker)
+            
+            # Add door label
+            text_marker = Marker()
+            text_marker.header.frame_id = "map"
+            text_marker.header.stamp = current_time.to_msg()
+            text_marker.ns = "door_labels"
+            text_marker.id = i + 100
+            text_marker.type = Marker.TEXT_VIEW_FACING
+            text_marker.action = Marker.ADD
+            
+            text_marker.pose.position.x = position[0]
+            text_marker.pose.position.y = position[1]
+            text_marker.pose.position.z = 2.2  # Above door
+            text_marker.pose.orientation.w = 1.0
+            
+            text_marker.scale.z = 0.3  # Text size
+            text_marker.color.r = 0.0
+            text_marker.color.g = 1.0
+            text_marker.color.b = 0.0
+            text_marker.color.a = 1.0
+            
+            # Label with room names
+            from_room = door.get('from', '').replace('_', ' ').title()
+            to_room = door.get('to', '').replace('_', ' ').title()
+            text_marker.text = f"Door: {from_room} ↔ {to_room}"
+            
+            marker_array.markers.append(text_marker)
+        
+        self.door_markers_pub.publish(marker_array)
 
 def main(args=None):
     rclpy.init(args=args)
