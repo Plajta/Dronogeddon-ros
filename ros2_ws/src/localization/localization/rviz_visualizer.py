@@ -471,7 +471,7 @@ class RVizVisualizer(Node):
             # Position
             marker.pose.position.x = position[0]
             marker.pose.position.y = position[1]
-            marker.pose.position.z = 0.5  # Lower for better visibility from above
+            marker.pose.position.z = 0.05  # Same level as room markers for visibility
             
             # Orientation - rotate 90° for vertical walls
             if orientation == 'vertical':
@@ -488,7 +488,7 @@ class RVizVisualizer(Node):
             # Size - door opening along X, wall thickness along Y (before rotation)
             marker.scale.x = door_size  # Door opening width (90cm)
             marker.scale.y = wall_thickness * 3.0  # Wall thickness (visible from above)
-            marker.scale.z = 2.0  # Height (2 meters)
+            marker.scale.z = 0.1  # Same thin height as room markers
             
             # Color - bright green to indicate passable
             marker.color.r = 0.0
