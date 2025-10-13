@@ -19,6 +19,8 @@ class RVizVisualizer(Node):
         
         # Load room configuration from external file
         self.room_config = get_room_config()
+        # Initialize rooms dictionary before loading
+        self.rooms = {}
         # Load room configuration
         self._load_rooms_from_config()
         
