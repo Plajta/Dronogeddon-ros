@@ -9,7 +9,7 @@ environment:
   origin: [-10.0, -10.0, 0.0]  # Map origin in world coordinates
   wall_thickness: 3     # Wall thickness in pixels
   door_size: 18         # Door opening size in pixels (18 * 0.05m = 0.9m = 90cm)
-  drone_start_position: [0.0, 0.0, 0.0]  # Drone starts in center of Living Room
+  drone_start_position: [1.0, 0.75, 0.0]  # Drone starts in upper-right quadrant of Living Room
 
 # Furniture definitions
 # furniture:

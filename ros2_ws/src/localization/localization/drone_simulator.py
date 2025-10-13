@@ -48,9 +48,9 @@ class DroneSimulator(Node):
         
         # Drone state
         self.drone_state = DroneState.LANDED
-        self.position_x = 0.0       # world coordinates (meters)
-        self.position_y = 0.0
-        self.position_z = 0.0       # height in meters
+        self.position_x = 0.0       # world coordinates (meters) - will be set from config
+        self.position_y = 0.0       # will be set from config
+        self.position_z = 0.0       # height in meters - will be set from config
         self.yaw = 0.0              # radians
         self.velocity_x = 0.0       # m/s
         self.velocity_y = 0.0
@@ -104,12 +104,6 @@ class DroneSimulator(Node):
         
         self.get_logger().info('Drone Simulator initialized')
         self.get_logger().info(f'Environment: {self.map_width}x{self.map_height} pixels, resolution: {self.map_resolution}m/px')
-        self.get_logger().info(f'Drone starting position: ({self.position_x:.2f}, {self.position_y:.2f}, {self.position_z:.2f})')
-        
-        # Check if starting position is valid
-        if self.simulation_map is not None:
-            is_valid = self.is_position_valid(self.position_x, self.position_y)
-            self.get_logger().info(f'Starting position is valid: {is_valid}')
     
     def load_simulation_environment(self):
         """Load simulation environment from rooms.yaml configuration"""
@@ -136,6 +130,17 @@ class DroneSimulator(Node):
         # Get environment settings
         env_config = self.rooms_config.get('environment', {})
         wall_thickness = env_config.get('wall_thickness', 3)
+        
+        # Set drone start position from configuration
+        drone_start_pos = env_config.get('drone_start_position', [0.0, 0.0, 0.0])
+        if isinstance(drone_start_pos, list) and len(drone_start_pos) >= 2:
+            self.position_x = float(drone_start_pos[0])
+            self.position_y = float(drone_start_pos[1])
+            if len(drone_start_pos) >= 3:
+                self.position_z = float(drone_start_pos[2])
+            self.get_logger().info(f'Set drone start position from config: ({self.position_x:.2f}, {self.position_y:.2f}, {self.position_z:.2f})')
+        else:
+            self.get_logger().warn('Invalid drone_start_position in config, using default (0, 0, 0)')
         
         # Initialize empty map (all unknown/free space)
         self.simulation_map = np.zeros((self.map_height, self.map_width), dtype=np.int8)
@@ -174,6 +179,13 @@ class DroneSimulator(Node):
         self.add_furniture_from_config()
         
         self.get_logger().info(f'Created environment with {len(rooms)} rooms from configuration')
+        
+        # Validate drone start position after environment is created
+        if not self.is_position_valid(self.position_x, self.position_y):
+            self.get_logger().warn(f'Drone start position ({self.position_x:.2f}, {self.position_y:.2f}) is not valid (in wall/obstacle)!')
+            self.get_logger().warn('Consider adjusting drone_start_position in rooms.yaml')
+        else:
+            self.get_logger().info(f'Drone start position ({self.position_x:.2f}, {self.position_y:.2f}) is valid')
         
         # Generate visualization of the environment (async to not block startup)
         # Run in a separate thread to avoid blocking
