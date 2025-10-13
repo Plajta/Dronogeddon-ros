@@ -349,8 +349,9 @@ class RVizVisualizer(Node):
             return
             
         marker_array = MarkerArray()
-        sensor_angles = [0, -math.pi/2, math.pi/2, math.pi]  # front, left, right, back
-        sensor_names = ['front', 'left', 'right', 'back']
+        # IMPORTANT: Order must match ToFDistances message fields and drone_simulator.py
+        sensor_angles = [0, -math.pi/2, math.pi, math.pi/2]  # front, left, back, right
+        sensor_names = ['front', 'left', 'back', 'right']
         
         for i, (angle_offset, sensor_name) in enumerate(zip(sensor_angles, sensor_names)):
             if sensor_name not in self.current_distances:
