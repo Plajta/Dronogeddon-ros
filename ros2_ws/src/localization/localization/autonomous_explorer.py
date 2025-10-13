@@ -50,8 +50,8 @@ class AutonomousExplorer(Node):
         
         # Rotation control with hysteresis
         self.is_rotating = False
-        self.rotation_threshold_start = 0.3  # Start rotating at 17 degrees
-        self.rotation_threshold_stop = 0.15  # Stop rotating at 8.5 degrees
+        self.rotation_threshold_start = 0.35  # Start rotating at 20 degrees
+        self.rotation_threshold_stop = 0.2   # Stop rotating at 11.5 degrees (consistent with obstacle avoidance)
         self.last_angle_diff = 0.0
         
         # Safety and control
@@ -273,13 +273,18 @@ class AutonomousExplorer(Node):
             yaw_speed = max(10, min(max_yaw_speed, yaw_speed))  # Clamp between 10-25
             yaw_speed = yaw_speed if angle_diff > 0 else -yaw_speed
             
+            # IMPORTANT: Only rotate, don't move forward while rotating
+            forward_speed = 0
+            
             # Log less frequently to reduce spam
             if not hasattr(self, 'last_rotation_log') or time.time() - self.last_rotation_log > 0.5:
                 self.last_rotation_log = time.time()
                 self.get_logger().info(f'Rotating to target: angle_diff={angle_diff:.3f}rad ({math.degrees(angle_diff):.1f}°), yaw_speed={yaw_speed:.0f}')
         else:
-            # Move forward when aligned
+            # Move forward when properly aligned - always use front sensors
             forward_speed = min(25, max(10, int(distance * 8)))  # Slightly reduced speed
+            yaw_speed = 0  # Don't rotate while moving forward
+            
             if not hasattr(self, 'last_forward_log') or time.time() - self.last_forward_log > 1.0:
                 self.last_forward_log = time.time()
                 self.get_logger().info(f'Moving forward: distance={distance:.2f}m, angle_diff={math.degrees(angle_diff):.1f}°, speed={forward_speed}')
@@ -315,18 +320,36 @@ class AutonomousExplorer(Node):
         max_idx = distances.index(max_distance)
         
         if max_distance > self.safe_distance * 1.5:
-            # Found safe direction
-            if max_idx == 0:  # front
+            # Found safe direction - always rotate to face it first, then move forward
+            target_yaw_offset = 0
+            if max_idx == 0:  # front - already facing correct direction
+                target_yaw_offset = 0
+            elif max_idx == 1:  # left - rotate 90° left
+                target_yaw_offset = -math.pi/2
+            elif max_idx == 2:  # right - rotate 90° right  
+                target_yaw_offset = math.pi/2
+            else:  # back - rotate 180°
+                target_yaw_offset = math.pi
+            
+            # Calculate current orientation and desired orientation
+            current_yaw = math.radians(self.current_telemetry.yaw) if self.current_telemetry else 0
+            target_yaw = current_yaw + target_yaw_offset
+            angle_diff = self.normalize_angle(target_yaw - current_yaw)
+            
+            # Rotate first if not aligned, then move forward
+            if abs(angle_diff) > 0.2:  # ~11 degrees tolerance
+                # Rotate towards safe direction
+                yaw_speed = 30 if angle_diff > 0 else -30
+                self.send_rc_command(0, 0, 0, yaw_speed)
+                self.get_logger().info(f'Obstacle avoidance: rotating towards safe direction (angle_diff={math.degrees(angle_diff):.1f}°)')
+            else:
+                # Aligned, move forward using front sensors
                 self.send_rc_command(0, 20, 0, 0)
-            elif max_idx == 1:  # left
-                self.send_rc_command(-20, 0, 0, 0)
-            elif max_idx == 2:  # right
-                self.send_rc_command(20, 0, 0, 0)
-            else:  # back
-                self.send_rc_command(0, -20, 0, 0)
+                self.get_logger().info(f'Obstacle avoidance: moving forward towards safe area')
         else:
             # All directions blocked, rotate to find opening
             self.send_rc_command(0, 0, 0, 40)
+            self.get_logger().info('Obstacle avoidance: all directions blocked, rotating to find opening')
 
     def is_obstacle_detected(self):
         """Check if obstacles are too close"""

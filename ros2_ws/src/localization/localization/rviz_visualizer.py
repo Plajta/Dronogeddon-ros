@@ -19,11 +19,12 @@ class RVizVisualizer(Node):
         
         # Load room configuration from external file
         self.room_config = get_room_config()
-        self.rooms = {}
+        # Load room configuration
         self._load_rooms_from_config()
         
-        # Drone state (estimated from SLAM)
-        self.drone_position = (0.0, 0.0, 1.5)
+        # Drone state (estimated from SLAM) - initialize from config
+        initial_pos = self._get_initial_drone_position()
+        self.drone_position = initial_pos
         self.drone_yaw = 0.0
         self.drone_trajectory = []
         self.max_trajectory_points = 100
@@ -85,6 +86,26 @@ class RVizVisualizer(Node):
             }
         
         self.get_logger().info(f'Loaded {len(self.rooms)} rooms from configuration')
+
+    def _get_initial_drone_position(self):
+        """Get initial drone position from configuration"""
+        try:
+            # Try to get drone_start_position from environment config
+            env_config = self.room_config.get('environment', {})
+            drone_start_pos = env_config.get('drone_start_position', [0.0, 0.0, 1.5])
+            
+            if isinstance(drone_start_pos, list) and len(drone_start_pos) >= 2:
+                x = float(drone_start_pos[0])
+                y = float(drone_start_pos[1])
+                z = float(drone_start_pos[2]) if len(drone_start_pos) >= 3 else 1.5
+                self.get_logger().info(f'Using initial drone position from config: ({x:.2f}, {y:.2f}, {z:.2f})')
+                return (x, y, z)
+            else:
+                self.get_logger().warn('Invalid drone_start_position in config, using default (0, 0, 1.5)')
+                return (0.0, 0.0, 1.5)
+        except Exception as e:
+            self.get_logger().error(f'Error loading initial drone position: {e}')
+            return (0.0, 0.0, 1.5)
 
     def pose_callback(self, msg):
         """Update drone position from SLAM estimated pose (primary source)"""

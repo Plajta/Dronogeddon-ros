@@ -188,9 +188,14 @@ class DroneSimulator(Node):
             self.get_logger().info(f'Drone start position ({self.position_x:.2f}, {self.position_y:.2f}) is valid')
         
         # Generate visualization of the environment (async to not block startup)
-        # Run in a separate thread to avoid blocking
+        # Run in a separate thread to avoid blocking, with small delay to ensure all setup is complete
         import threading
-        viz_thread = threading.Thread(target=self.save_environment_visualization, daemon=True)
+        def delayed_visualization():
+            import time
+            time.sleep(0.5)  # Small delay to ensure all initialization is complete
+            self.save_environment_visualization()
+        
+        viz_thread = threading.Thread(target=delayed_visualization, daemon=True)
         viz_thread.start()
     
     def add_doors_from_config(self):
@@ -759,7 +764,8 @@ class DroneSimulator(Node):
                 ax.add_patch(door_circle)
                 ax.text(position[0], position[1]-0.3, 'DOOR', ha='center', va='center', fontsize=6, color='darkgreen')
             
-            # Draw drone position
+            # Draw drone position (from configuration)
+            self.get_logger().info(f'Drawing drone in visualization at position: ({self.position_x:.2f}, {self.position_y:.2f})')
             drone_circle = patches.Circle(
                 (self.position_x, self.position_y), 0.2, 
                 facecolor='red', edgecolor='darkred', linewidth=3
