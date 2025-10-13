@@ -441,14 +441,14 @@ class RVizVisualizer(Node):
     
     def publish_door_markers(self):
         """Publish door markers for RViz visualization"""
-        doors = self.room_config.config.get('doors', [])
+        doors = self.room_config.get_doors()
         if not doors:
             return
         
         marker_array = MarkerArray()
         current_time = self.get_clock().now()
         
-        env_config = self.room_config.config.get('environment', {})
+        env_config = self.room_config.get_environment()
         door_size = env_config.get('door_size', 12) * 0.05  # Convert pixels to meters
         wall_thickness = env_config.get('wall_thickness', 3) * 0.05
         

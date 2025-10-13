@@ -15,6 +15,8 @@ class RoomConfig:
         self.config_file = config_file
         self.rooms = {}
         self.motion_settings = {}
+        self.doors = []
+        self.environment = {}
         self.default_investigation_height = 1.5
         self.load_config()
     
@@ -44,6 +46,8 @@ class RoomConfig:
             
             self.rooms = config.get('rooms', {})
             self.motion_settings = config.get('motion_settings', {})
+            self.doors = config.get('doors', [])
+            self.environment = config.get('environment', {})
             self.default_investigation_height = config.get('default_investigation_height', 1.5)
             
             print(f"Loaded room config from {self.config_file}")
@@ -90,6 +94,8 @@ class RoomConfig:
             'cooldown_period': 30.0,
             'alert_duration': 300.0
         }
+        self.doors = []
+        self.environment = {}
     
     def get_room_by_id(self, room_id):
         """Get room configuration by ID"""
@@ -134,6 +140,14 @@ class RoomConfig:
     def get_motion_settings(self):
         """Get motion detection settings"""
         return self.motion_settings
+    
+    def get_doors(self):
+        """Get door configurations"""
+        return self.doors
+    
+    def get_environment(self):
+        """Get environment settings"""
+        return self.environment
     
     def get_cooldown_period(self):
         """Get motion detection cooldown period"""
