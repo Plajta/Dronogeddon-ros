@@ -48,6 +48,12 @@ class AutonomousExplorer(Node):
         self.frontiers = []
         self.current_frontier_idx = 0
         
+        # Rotation control with hysteresis
+        self.is_rotating = False
+        self.rotation_threshold_start = 0.3  # Start rotating at 17 degrees
+        self.rotation_threshold_stop = 0.15  # Stop rotating at 8.5 degrees
+        self.last_angle_diff = 0.0
+        
         # Safety and control
         self.last_command_time = 0
         self.obstacle_avoidance_start = 0
@@ -246,17 +252,39 @@ class AutonomousExplorer(Node):
         current_yaw = math.radians(self.current_telemetry.yaw)
         angle_diff = self.normalize_angle(target_angle - current_yaw)
         
-        # Movement logic - actually move forward
+        # Movement logic with hysteresis to prevent oscillation
         yaw_speed = 0
         forward_speed = 0
         
-        if abs(angle_diff) > 0.2:  # need to rotate first
-            yaw_speed = 30 if angle_diff > 0 else -30
-            self.get_logger().info(f'Rotating to target: angle_diff={angle_diff:.2f}, yaw_speed={yaw_speed}')
+        # Hysteresis logic for rotation
+        if not self.is_rotating:
+            # Start rotating if angle difference is large enough
+            if abs(angle_diff) > self.rotation_threshold_start:
+                self.is_rotating = True
+        else:
+            # Stop rotating only when angle difference is small enough
+            if abs(angle_diff) <= self.rotation_threshold_stop:
+                self.is_rotating = False
+        
+        if self.is_rotating:
+            # Adaptive rotation speed based on angle difference
+            max_yaw_speed = 25  # Reduced from 30
+            yaw_speed = max_yaw_speed * (abs(angle_diff) / self.rotation_threshold_start)
+            yaw_speed = max(10, min(max_yaw_speed, yaw_speed))  # Clamp between 10-25
+            yaw_speed = yaw_speed if angle_diff > 0 else -yaw_speed
+            
+            # Log less frequently to reduce spam
+            if not hasattr(self, 'last_rotation_log') or time.time() - self.last_rotation_log > 0.5:
+                self.last_rotation_log = time.time()
+                self.get_logger().info(f'Rotating to target: angle_diff={angle_diff:.3f}rad ({math.degrees(angle_diff):.1f}°), yaw_speed={yaw_speed:.0f}')
         else:
             # Move forward when aligned
-            forward_speed = min(30, max(10, int(distance * 10)))  # Speed based on distance
-            self.get_logger().info(f'Moving forward: distance={distance:.2f}m, speed={forward_speed}')
+            forward_speed = min(25, max(10, int(distance * 8)))  # Slightly reduced speed
+            if not hasattr(self, 'last_forward_log') or time.time() - self.last_forward_log > 1.0:
+                self.last_forward_log = time.time()
+                self.get_logger().info(f'Moving forward: distance={distance:.2f}m, angle_diff={math.degrees(angle_diff):.1f}°, speed={forward_speed}')
+        
+        self.last_angle_diff = angle_diff
             
         self.send_rc_command(0, forward_speed, 0, yaw_speed)
 
