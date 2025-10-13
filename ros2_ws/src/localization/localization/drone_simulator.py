@@ -228,6 +228,11 @@ class DroneSimulator(Node):
         """Add furniture to rooms based on configuration"""
         furniture_config = self.rooms_config.get('furniture', {})
         
+        # Skip if no furniture configuration found
+        if not furniture_config:
+            self.get_logger().info('No furniture configuration found - creating environment without furniture')
+            return
+        
         for room_name, furniture_list in furniture_config.items():
             for i, furniture in enumerate(furniture_list):
                 # Validate required parameters
@@ -460,6 +465,12 @@ class DroneSimulator(Node):
         # Check if any cell in the safety area is occupied using numpy
         # This is much faster than nested loops
         if np.any(self.simulation_map[y_min:y_max, x_min:x_max] == 100):
+            # Debug: Log collision details
+            occupied_cells = np.where(self.simulation_map[y_min:y_max, x_min:x_max] == 100)
+            if len(occupied_cells[0]) > 0:
+                self.get_logger().warn(f'Collision detected at world pos ({x:.2f}, {y:.2f}) -> map pos ({map_x}, {map_y})')
+                self.get_logger().warn(f'Safety area: x[{x_min}:{x_max}], y[{y_min}:{y_max}]')
+                self.get_logger().warn(f'Found {len(occupied_cells[0])} occupied cells in safety area')
             return False
         
         return True
